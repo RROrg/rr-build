@@ -1,0 +1,113 @@
+#
+# Copyright (C) 2022 Ing <https://github.com/wjz304>
+#
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
+
+name: Build buildroot
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "format %y.%-m.$i or auto"
+        required: false
+        type: string
+      prerelease:
+        description: "pre release"
+        default: false
+        type: boolean
+      br2ver:
+        description: "buildroot version"
+        default: "2023.08.x"
+        type: string
+
+jobs:
+  buildroot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/buildroot
+          token: ${{ secrets.RRORG }}
+          path: buildroot
+
+      - name: Initialization environment
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+          # Clean up disk space
+          docker rmi $(docker images -q)
+          sudo apt update
+          sudo apt -y purge azure-cli* docker* llvm* google* dotnet* powershell* sphinxsearch* mysql* php* 
+          sudo apt -y full-upgrade
+
+          sudo apt update
+          sudo apt install -y jq gawk cpio gettext libelf-dev qemu-utils 
+          sudo snap install yq
+          
+          df -h
+
+      - name: Calculate version
+        run: |
+          # Calculate version
+          VERSION=""
+          if [ -n "${{ inputs.version }}" ]; then
+            if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
+              VERSION="${{ inputs.version }}"
+            else
+              LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.RRORG }}" "https://api.github.com/repos/RROrg/rr-buildroot/releases" | jq -r ".[0].tag_name" 2>/dev/null)"
+              if [ -n "${LATEST_TAG}" -a "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
+                VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
+              else
+                VERSION="$(date +'%y.%-m').0"
+              fi
+            fi
+          else
+            VERSION=""
+          fi
+
+          echo "VERSION: ${VERSION}"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Build buildroot
+        run: |
+          cd buildroot
+          chmod +x ./build_rr.sh
+          . ./build_rr.sh "${{ inputs.br2ver}}"
+
+          [ -n "${BUILDROOT_VERSION}" ] && echo "BUILDROOT_VERSION=${BUILDROOT_VERSION}" >> $GITHUB_ENV || exit 1
+          [ -n "${KERNEL_VERSION}" ] && echo "KERNEL_VERSION=${KERNEL_VERSION}" >> $GITHUB_ENV || exit 1
+
+      - name: Upload artifact
+        if: env.VERSION == ''
+        uses: actions/upload-artifact@v3
+        with:
+          name: buildroot
+          path: |
+            buildroot/.rr-buildroot/output/images/bzImage
+            buildroot/.rr-buildroot/output/images/rootfs.cpio.xz
+
+      # Publish a release if is a tag
+      - name: Release
+        if: env.VERSION != ''
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.VERSION }}
+          prerelease: ${{ inputs.prerelease }}
+          artifacts: |
+            buildroot/.rr-buildroot/output/images/bzImage
+            buildroot/.rr-buildroot/output/images/rootfs.cpio.xz
+          body: |
+            Buildroot version: ${{ env.BUILDROOT_VERSION }}
+            Kernel version: ${{ env.KERNEL_VERSION }}
+          owner: RROrg
+          repo: rr-buildroot
+          token: ${{ secrets.RRORG }}

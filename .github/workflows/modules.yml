@@ -1,0 +1,347 @@
+#
+# Copyright (C) 2022 Ing <https://github.com/wjz304>
+#
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
+
+# # 注意：所有 include 组合会在 exclude 之后处理。 这允许你使用 include 添加回以前排除的组合。
+# version: [ 6.2, 7.1, 7.2 ]
+# platform: [ apollolake, broadwell, broadwellnk, bromolow, denverton, epyc7002, geminilake, purley, r1000, v1000 ]
+# exclude:
+#   - version: 7.1
+#     platform: broadwell
+# include:
+#   - version: "7.2"
+#     platform: "broadwell"
+
+name: Build modules main
+
+on:
+  release:
+    types: [published]
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "format %y.%-m.$i or auto"
+        required: false
+        type: string
+      prerelease:
+        description: "pre release"
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - version: 6.2
+            platform: apollolake
+          - version: 6.2
+            platform: braswell
+          - version: 6.2
+            platform: broadwell
+          - version: 6.2
+            platform: broadwellnk
+          - version: 6.2
+            platform: broadwellntbap
+          - version: 6.2
+            platform: bromolow
+          - version: 6.2
+            platform: denverton
+          # checkout 6.2.4
+          - version: 6.2
+            platform: geminilake
+          # checkout 6.2.4
+          - version: 6.2
+            platform: grantley
+          # checkout 6.2.4
+          - version: 6.2
+            platform: purley
+          # checkout 6.2.4
+          - version: 6.2
+            platform: v1000
+
+          - version: 7.1
+            platform: apollolake
+          - version: 7.1
+            platform: braswell
+          - version: 7.1
+            platform: broadwell
+          - version: 7.1
+            platform: broadwellnk
+          - version: 7.1
+            platform: broadwellnkv2
+          - version: 7.1
+            platform: broadwellntbap
+          - version: 7.1
+            platform: bromolow
+          - version: 7.1
+            platform: denverton
+          - version: 7.1
+            platform: epyc7002
+          - version: 7.1
+            platform: geminilake
+          - version: 7.1
+            platform: grantley
+          - version: 7.1
+            platform: purley
+          - version: 7.1
+            platform: r1000
+          - version: 7.1
+            platform: v1000
+
+          - version: 7.2
+            platform: apollolake
+          - version: 7.2
+            platform: braswell
+          - version: 7.2
+            platform: broadwell
+          - version: 7.2
+            platform: broadwellnk
+          - version: 7.2
+            platform: broadwellnkv2
+          - version: 7.2
+            platform: broadwellntbap
+          #- version: 7.2
+          #  platform: bromolow
+          - version: 7.2
+            platform: denverton
+          - version: 7.2
+            platform: epyc7002
+          - version: 7.2
+            platform: geminilake
+          - version: 7.2
+            platform: grantley
+          - version: 7.2
+            platform: purley
+          - version: 7.2
+            platform: r1000
+          - version: 7.2
+            platform: v1000
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rp-modules
+          token: ${{ secrets.RRORG }}
+          path: rp-modules
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-modules
+          token: ${{ secrets.RRORG }}
+          path: rr-modules
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: Make modules
+        run: |
+          . rp-modules/compile.sh
+          echo "----------------- Env  -----------------"
+          makeEnvDeploy ${{ github.workspace }} ${{ matrix.version }} ${{ matrix.platform }}
+          echo "----------------- Make -----------------"
+          makemodules ${{ github.workspace }} ${{ matrix.version }} ${{ matrix.platform }} rp-modules/src output
+
+      - name: Tar to Artifacts
+        run: |
+          . rp-modules/compile.sh
+
+          ROOT_PATH=${{ github.workspace }}
+          VERSION=${{ matrix.version }}
+          PLATFORM=${{ matrix.platform }}
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
+          [ -z "${KVER}" ] && exit 1
+
+          if [ "${PLATFORM}" = "epyc7002" ]; then
+            OFFICIAL_PATH="${ROOT_PATH}/rp-modules/official/hda1/${PLATFORM}-${VERSION}-${KVER}"
+            PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
+          else
+            OFFICIAL_PATH="${ROOT_PATH}/rp-modules/official/hda1/${PLATFORM}-${KVER}"
+            PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${KVER}"
+          fi
+
+          echo "copy official modules"
+          OM=(cpufreq_performance i915.ko processor.ko mlx4_core.ko mlx4_en.ko mlx4_ib.ko mlx5_ib.ko mlx5_core.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko)
+          if echo ${F} | grep -qE "apollolake|braswell|broadwell|broadwellnk|broadwellnkv2|broadwellntbap|bromolow|denverton|geminilake|grantley|purley"; then
+            OM+=(kvm-intel.ko)
+          else
+            OM+=(kvm-amd.ko)
+          fi
+          for M in ${OM[@]}; do
+            function _copydepends() {
+              [ -f "${OFFICIAL_PATH}/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && sudo cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output"
+              depends=($(modinfo "${OFFICIAL_PATH}/${1}" | grep depends: | awk -F: '{print $2}' | awk '$1=$1' | sed 's/,/ /g'))
+              if [ ${#depends[*]} -gt 0 ]; then
+                for k in ${depends[@]}; do
+                  _copydepends "${k}.ko"
+                done
+              fi
+            }
+            _copydepends "${M}"
+          done
+
+          echo "copy 3rd modules"
+          [ -d "${PARTY3RD_PATH}" ] && sudo cp -rf "${PARTY3RD_PATH}/." "${ROOT_PATH}/output"
+
+          echo "check depends"
+          for M in `ls ${ROOT_PATH}/output`; do
+            function _copydepends() {
+              if [ ! -f "${ROOT_PATH}/output/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ]; then
+                if [ -f "${OFFICIAL_PATH}/${1}" ]; then
+                  sudo cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output"
+                else
+                  echo "[E] '${PLATFORM}-${KVER}' - '${M}' depends '${1}' does not exist."
+                fi
+              fi
+              D=""
+              [ -z "${D}" -a -f "${ROOT_PATH}/output/${1}" ] && D="${ROOT_PATH}/output/${1}"
+              [ -z "${D}" -a -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && D="${OFFICIAL_PATH/hda1/rd}/${1}"
+              if [ -n "${D}" ]; then
+                modinfo "${D}" || true
+                depends=(`modinfo "${D}" | grep depends: | awk -F: '{print $2}' | awk '$1=$1' | sed 's/,/ /g'`) || true
+                if [ ${#depends[*]} -gt 0 ]; then
+                  for k in ${depends[@]}; do
+                    [ -f "${ROOT_PATH}/output/${k}.ko" ] && continue  # Recursively skip wext-priv and wext-core dependencies on each other.
+                    _copydepends "${k}.ko"
+                  done
+                fi
+              fi
+            }
+            _copydepends "${M}"
+          done
+          if [ "${PLATFORM}" = "epyc7002" ]; then
+            tar caf ${ROOT_PATH}/${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
+          else
+            tar caf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output .
+          fi
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: modules
+          path: |
+            *.tgz
+
+  firmware:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-modules
+          token: ${{ secrets.RRORG }}
+          path: rr-modules
+
+      - name: download to artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: modules
+          path: ./modules
+
+      - name: firmware
+        run: |
+          mkdir -p firmware
+
+          echo "copy 3rd modules"
+          PARTY3RD_PATH="${{ github.workspace }}/rr-modules/thirdparty/firmware"
+          cp -rf ${PARTY3RD_PATH}/* firmware/
+
+          echo "extract all modules"
+          for F in ./modules/*.tgz; do mkdir "${F%.tgz}" && tar -xzf "${F}" -C "${F%.tgz}"; done
+
+          echo "get firmware"
+          SOURCE=/tmp/linux-firmware
+          git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
+          while read L; do
+            if [ -e "${SOURCE}/${L}" ]; then
+              mkdir -p "`dirname firmware/${L}`"
+              cp "${SOURCE}/${L}" "firmware/${L}"
+            else
+              [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
+            fi
+          done < <(find ./modules -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
+
+          tar caf firmware.tgz -C firmware .
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: modules
+          path: |
+            firmware.tgz
+
+  release:
+    runs-on: ubuntu-latest
+    needs: firmware
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Calculate version
+        run: |
+          # Calculate version
+          VERSION=""
+          if [ -n "${{ inputs.version }}" ]; then
+            if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
+              VERSION="${{ inputs.version }}"
+            else
+              LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.RRORG }}" "https://api.github.com/repos/RROrg/rr-modules/releases" | jq -r ".[0].tag_name" 2>/dev/null)"
+              if [ -n "${LATEST_TAG}" -a "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
+                VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
+              else
+                VERSION="$(date +'%y.%-m').0"
+              fi
+            fi
+          else
+            VERSION=""
+          fi
+
+          echo "VERSION: ${VERSION}"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: download to artifacts
+        if: env.VERSION != ''
+        uses: actions/download-artifact@v3
+        with:
+          name: modules
+          path: ./modules
+
+      - name: delete-artifact
+        if: env.VERSION != ''
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: modules
+
+      - name: Zip modules
+        if: env.VERSION != ''
+        run: |
+          echo "${{ env.VERSION }}" > "modules/VERSION"
+          zip -9 modules.zip -j modules/*
+
+      - name: Release
+        if: env.VERSION != ''
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.VERSION }}
+          prerelease: ${{ inputs.prerelease }}
+          artifacts: modules.zip
+          owner: RROrg
+          repo: rr-modules
+          token: ${{ secrets.RRORG }}
