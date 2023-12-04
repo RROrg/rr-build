@@ -162,6 +162,8 @@ jobs:
             zip -9 "rr.img.zip" rr.img
             zip -9 "rr_4GB.img.zip" rr_4GB.img
           fi
+
+          # update.zip
           sha256sum update-list.yml update-check.sh > sha256sum
           zip -9j update.zip update-list.yml update-check.sh
           while read F; do
@@ -178,6 +180,27 @@ jobs:
           done < <(yq '.replace | explode(.) | to_entries | map([.key])[] | .[]' update-list.yml)
           zip -9j update.zip sha256sum
 
+          # updateall.zip
+          rm -f sha256sum
+          echo '  "files/p3/lkms/": "/mnt/p3/lkms/"' >> update-list.yml
+          echo '  "files/p3/addons/": "/mnt/p3/addons/"' >> update-list.yml
+          echo '  "files/p3/modules/": "/mnt/p3/modules/"' >> update-list.yml
+
+          zip -9j updateall.zip update-list.yml update-check.sh
+          while read F; do
+            if [ -d "${F}" ]; then
+              FTGZ="$(basename "${F}").tgz"
+              tar -czf "${FTGZ}" -C "${F}" .
+              sha256sum "${FTGZ}" >> sha256sum
+              zip -9j updateall.zip "${FTGZ}"
+              rm -f "${FTGZ}"
+            else
+              (cd $(dirname "${F}") && sha256sum $(basename "${F}")) >> sha256sum
+              zip -9j updateall.zip "${F}"
+            fi
+          done < <(yq '.replace | explode(.) | to_entries | map([.key])[] | .[]' update-list.yml)
+          zip -9j updateall.zip sha256sum
+
       # Upload artifact
       - name: Upload
         if: env.VERSION == ''
@@ -186,7 +209,7 @@ jobs:
           name: Images
           path: |
             rr/rr*.zip
-            rr/update.zip
+            rr/update*.zip
           retention-days: 5
 
       # Publish a release if is a tag
@@ -198,7 +221,7 @@ jobs:
           prerelease: ${{ inputs.prerelease }}
           artifacts: |
             rr/rr*.zip
-            rr/update.zip
+            rr/update*.zip
           owner: RROrg
           repo: rr
           token: ${{ secrets.RRORG }}
