@@ -55,7 +55,8 @@ jobs:
           if [ -f "grub.img.gz" ]; then
             echo "Copy img ..."
             mv -f grub.img.gz rr/files/grub.img.gz
-            
+            cp -f rr/files/grub.img.gz rr/files/initrd/opt/rr/grub.img.gz
+
             cd rr
             echo "Git push ..."
             git pull
