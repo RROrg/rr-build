@@ -1,0 +1,119 @@
+#
+# Copyright (C) 2022 Ing <https://github.com/wjz304>
+#
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
+
+name: Update addons eudev
+
+on:
+  workflow_dispatch:
+    inputs:
+      push:
+        description: "push"
+        default: false
+        type: boolean
+
+jobs:
+  eudev:
+    strategy:
+      matrix:
+        include:
+          - version: 6.2
+            platform: apollolake
+
+          - version: 7.1
+            platform: apollolake
+
+          - version: 7.2
+            platform: apollolake
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-addons
+          token: ${{ secrets.RRORG }}
+          path: rr-addons
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: Make eudev
+        run: |
+          . rr-addons/eudev/compile-eudev.sh
+          echo "----------------- Env  -----------------"
+          makeEnvDeploy ${{ github.workspace }} ${{ matrix.version }} ${{ matrix.platform }}
+          echo "----------------- Make -----------------"
+          makeeudev ${{ github.workspace }} ${{ matrix.version }} ${{ matrix.platform }} rr-addons/eudev/src output
+
+      - name: Tar to Artifacts
+        run: |
+          tar caf eudev-${{ matrix.version }}.tgz -C output .
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: eudev
+          path: |
+            *.tgz
+
+  release:
+    runs-on: ubuntu-latest
+    needs: eudev
+    if: inputs.push == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-addons
+          token: ${{ secrets.RRORG }}
+          path: rr-addons
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: download to artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: eudev
+          path: ./eudev
+
+      - name: delete-artifact
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: eudev
+
+      - name: Check and Push
+        run: |
+          if [ `ls eudev/*.tgz 2> /dev/null | wc -l` -gt 0 ]; then
+            echo "Copy eudev ..."
+            rm -rf rr-addons/eudev/all/addons/*
+            mv -f eudev/*.tgz rr-addons/eudev/all/addons/
+
+            cd rr-addons
+            echo "Git push ..."
+            git pull
+            status=$(git status -s | grep -E 'eudev/all/addons/' | awk '{printf " %s", $2}')
+            if [ -n "${status}" ]; then
+              git add ${status}
+              git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
+              git push -f
+            fi
+          else
+            echo "No change ..."
+          fi
