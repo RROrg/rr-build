@@ -46,6 +46,9 @@ jobs:
             platform: grantley
           # checkout 6.2.4
           - version: 6.2
+            platform: kvmx64
+          # checkout 6.2.4
+          - version: 6.2
             platform: purley
           # checkout 6.2.4
           - version: 6.2
@@ -73,6 +76,8 @@ jobs:
             platform: geminilake
           - version: 7.1
             platform: grantley
+          - version: 7.1
+            platform: kvmx64
           - version: 7.1
             platform: purley
           - version: 7.1
@@ -102,6 +107,8 @@ jobs:
             platform: geminilake
           - version: 7.2
             platform: grantley
+          - version: 7.2
+            platform: kvmx64
           - version: 7.2
             platform: purley
           - version: 7.2

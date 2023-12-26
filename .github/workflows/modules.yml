@@ -5,22 +5,9 @@
 # See /LICENSE for more information.
 #
 
-# # 注意：所有 include 组合会在 exclude 之后处理。 这允许你使用 include 添加回以前排除的组合。
-# version: [ 6.2, 7.1, 7.2 ]
-# platform: [ apollolake, broadwell, broadwellnk, bromolow, denverton, epyc7002, geminilake, purley, r1000, v1000 ]
-# exclude:
-#   - version: 7.1
-#     platform: broadwell
-# include:
-#   - version: "7.2"
-#     platform: "broadwell"
-
 name: Build modules main
 
 on:
-  release:
-    types: [published]
-
   workflow_dispatch:
     inputs:
       version:
@@ -59,6 +46,9 @@ jobs:
             platform: grantley
           # checkout 6.2.4
           - version: 6.2
+            platform: kvmx64
+          # checkout 6.2.4
+          - version: 6.2
             platform: purley
           # checkout 6.2.4
           - version: 6.2
@@ -86,6 +76,8 @@ jobs:
             platform: geminilake
           - version: 7.1
             platform: grantley
+          - version: 7.1
+            platform: kvmx64
           - version: 7.1
             platform: purley
           - version: 7.1
@@ -115,6 +107,8 @@ jobs:
             platform: geminilake
           - version: 7.2
             platform: grantley
+          - version: 7.2
+            platform: kvmx64
           - version: 7.2
             platform: purley
           - version: 7.2
