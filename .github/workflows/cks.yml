@@ -1,0 +1,246 @@
+#
+# Copyright (C) 2022 Ing <https://github.com/wjz304>
+#
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
+
+name: Build cks
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "format %y.%-m.$i or auto"
+        required: false
+        type: string
+      prerelease:
+        description: "pre release"
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          #- version: 7.1
+          #  platform: epyc7002
+          - version: 7.2
+            platform: epyc7002
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-cks
+          token: ${{ secrets.RRORG }}
+          path: rr-cks
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com" 
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+          
+          sudo apt update
+          sudo apt install -y curl build-essential bison flex dwarves ruby libncurses-dev libssl-dev libelf-dev
+
+      - name: Make modules
+        run: |
+          ROOT_PATH=${{ github.workspace }}
+          VERSION=${{ matrix.version }}
+          PLATFORM=${{ matrix.platform }}
+          
+          if [ "${VERSION}" = "7.2" ]; then
+            git clone --depth=1 https://github.com/RROrg/linux_dsm_epyc7002.git
+          else
+            echo "Only support 7.2"
+            exit 1
+          fi
+
+          . rr-cks/compile.sh
+          echo "----------------- Env  -----------------"
+          makeEnvDeploy ${ROOT_PATH} ${VERSION} ${PLATFORM}
+          echo "-------------- Make Kernel -------------"
+          makekernel ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 output
+          echo "-------------- Make modules ------------"
+          makemodules ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 rr-cks/src/5.10.55 modules
+          
+          cp -rf modules/* output
+
+      - name: Tar to Artifacts
+        run: |
+          . rr-cks/compile.sh
+
+          ROOT_PATH=${{ github.workspace }}
+          VERSION=${{ matrix.version }}
+          PLATFORM=${{ matrix.platform }}
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "linux_dsm_epyc7002")"
+          [ -z "${KVER}" ] && exit 1
+
+          if [ "${PLATFORM}" = "epyc7002" ]; then
+            PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
+          else
+            PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/${PLATFORM}-${KVER}"
+          fi
+
+          echo "copy 3rd modules"
+          [ -d "${PARTY3RD_PATH}" ] && sudo cp -rf "${PARTY3RD_PATH}/." "${ROOT_PATH}/output/modules"
+
+          echo "check depends"
+          for M in `ls ${ROOT_PATH}/output/modules`; do
+            function _copydepends() {
+              if [ ! -f "${ROOT_PATH}/output/modules/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ]; then
+                if [ -f "${OFFICIAL_PATH}/${1}" ]; then
+                  sudo cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output/modules"
+                else
+                  echo "[E] '${PLATFORM}-${KVER}' - '${M}' depends '${1}' does not exist."
+                fi
+              fi
+              D=""
+              [ -z "${D}" -a -f "${ROOT_PATH}/output/modules/${1}" ] && D="${ROOT_PATH}/output/modules/${1}"
+              [ -z "${D}" -a -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && D="${OFFICIAL_PATH/hda1/rd}/${1}"
+              if [ -n "${D}" ]; then
+                modinfo "${D}" || true
+                depends=(`modinfo "${D}" | grep depends: | awk -F: '{print $2}' | awk '$1=$1' | sed 's/,/ /g'`) || true
+                if [ ${#depends[*]} -gt 0 ]; then
+                  for k in ${depends[@]}; do
+                    [ -f "${ROOT_PATH}/output/modules/${k}.ko" ] && continue  # Recursively skip wext-priv and wext-core dependencies on each other.
+                    _copydepends "${k}.ko"
+                  done
+                fi
+              fi
+            }
+            _copydepends "${M}"
+          done
+          if [ "${PLATFORM}" = "epyc7002" ]; then
+            tar caf ${ROOT_PATH}/modules-${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
+            gzip -c ${ROOT_PATH}/output/bzImage > ${ROOT_PATH}/bzImage-${PLATFORM}-${VERSION}-${KVER}.gz
+          else
+            tar caf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
+            gzip -c ${ROOT_PATH}/output/bzImage > ${ROOT_PATH}/bzImage-${PLATFORM}-${KVER}.gz
+          fi
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: rr-cks
+          path: |
+            *.tgz
+            *.gz
+
+  firmware:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-cks
+          token: ${{ secrets.RRORG }}
+          path: rr-cks
+
+      - name: download to artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: rr-cks
+          path: ./output
+
+      - name: firmware
+        run: |
+          mkdir -p firmware
+
+          echo "copy 3rd modules"
+          PARTY3RD_PATH="${{ github.workspace }}/rr-cks/thirdparty/firmware"
+          cp -rf ${PARTY3RD_PATH}/* firmware/
+
+          echo "extract all modules"
+          for F in ./output/*.tgz; do mkdir "${F%.tgz}" && tar -xzf "${F}" -C "${F%.tgz}"; done
+
+          echo "get firmware"
+          SOURCE=/tmp/linux-firmware
+          git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
+          while read L; do
+            if [ -e "${SOURCE}/${L}" ]; then
+              mkdir -p "`dirname firmware/${L}`"
+              cp "${SOURCE}/${L}" "firmware/${L}"
+            else
+              [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
+            fi
+          done < <(find ./output -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
+
+          tar caf firmware.tgz -C firmware .
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: rr-cks
+          path: |
+            firmware.tgz
+
+  release:
+    runs-on: ubuntu-latest
+    needs: firmware
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Calculate version
+        run: |
+          # Calculate version
+          VERSION=""
+          if [ -n "${{ inputs.version }}" ]; then
+            if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
+              VERSION="${{ inputs.version }}"
+            else
+              LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.RRORG }}" "https://api.github.com/repos/RROrg/rr-cks/releases" | jq -r ".[0].tag_name" 2>/dev/null)"
+              if [ -n "${LATEST_TAG}" -a "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
+                VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
+              else
+                VERSION="$(date +'%y.%-m').0"
+              fi
+            fi
+          else
+            VERSION=""
+          fi
+
+          echo "VERSION: ${VERSION}"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: download to artifacts
+        if: env.VERSION != ''
+        uses: actions/download-artifact@v3
+        with:
+          name: rr-cks
+          path: ./rr-cks
+
+      - name: delete-artifact
+        if: env.VERSION != ''
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: rr-cks
+
+      - name: Zip modules
+        if: env.VERSION != ''
+        run: |
+          echo "${{ env.VERSION }}" > "rr-cks/VERSION"
+          zip -9 rr-cks.zip -j rr-cks/*
+
+      - name: Release
+        if: env.VERSION != ''
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.VERSION }}
+          prerelease: ${{ inputs.prerelease }}
+          artifacts: rr-cks.zip
+          owner: RROrg
+          repo: rr-cks
+          token: ${{ secrets.RRORG }}
