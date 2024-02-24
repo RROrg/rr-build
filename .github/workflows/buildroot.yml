@@ -37,17 +37,16 @@ jobs:
           token: ${{ secrets.RRORG }}
           path: buildroot
 
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          swap-storage: false
+
       - name: Initialization environment
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           sudo timedatectl set-timezone "Asia/Shanghai"
-
-          # Clean up disk space
-          docker rmi $(docker images -q)
-          sudo apt update
-          sudo apt -y purge azure-cli* docker* llvm* google* dotnet* powershell* sphinxsearch* mysql* php* 
-          sudo apt -y full-upgrade
 
           sudo apt update
           sudo apt install -y jq gawk cpio gettext libelf-dev qemu-utils 
