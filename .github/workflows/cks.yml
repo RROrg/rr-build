@@ -58,6 +58,7 @@ jobs:
           
           if [ "${VERSION}" = "7.2" ]; then
             git clone --depth=1 https://github.com/RROrg/linux_dsm_epyc7002.git
+            git clone --depth=1 https://github.com/MoetaYuko/intel-gpu-i915-backports.git
           else
             echo "Only support 7.2"
             exit 1
@@ -70,8 +71,11 @@ jobs:
           makekernel ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 output
           echo "-------------- Make modules ------------"
           makemodules ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 rr-cks/src/5.10.55 modules
-          
+          echo "--------------- Make i915 --------------"
+          makei915 ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 intel-gpu-i915-backports i915
+
           cp -rf modules/* output
+          cp -rf i915/* output
 
       - name: Tar to Artifacts
         run: |
@@ -167,7 +171,7 @@ jobs:
 
           echo "get firmware"
           SOURCE=/tmp/linux-firmware
-          git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
+          git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
           while read L; do
             if [ -e "${SOURCE}/${L}" ]; then
               mkdir -p "`dirname firmware/${L}`"
