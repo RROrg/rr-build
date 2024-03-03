@@ -103,6 +103,7 @@ jobs:
           if [ `ls eudev/*.tgz 2> /dev/null | wc -l` -gt 0 ]; then
             echo "Copy eudev ..."
             rm -rf rr-addons/eudev/all/addons/eudev*.tgz
+            mkdir -p rr-addons/eudev/all/addons/
             mv -f eudev/*.tgz rr-addons/eudev/all/addons/
 
             cd rr-addons

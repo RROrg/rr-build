@@ -106,13 +106,14 @@ jobs:
       - name: Build image
         run: |
           cd rr
+          echo "Create RR_1GB image"
           . scripts/func.sh "${{ secrets.RRORG }}"
           echo "Create RR image"
-          gzip -dc "files/grub.img.gz" >"rr.img"
-          fdisk -l "rr.img"
+          gzip -dc "files/grub.img.gz" >"rr_1GB.img"
+          fdisk -l "rr_1GB.img"
           
           LOOPX=$(sudo losetup -f)
-          sudo losetup -P "${LOOPX}" "rr.img"
+          sudo losetup -P "${LOOPX}" "rr_1GB.img"
 
           echo "Mounting image file"
           mkdir -p "/tmp/p1"
@@ -144,7 +145,7 @@ jobs:
           sudo losetup --detach ${LOOPX}
 
           echo "Create RR_4GB image"  # $((1024 * 3 - 512))
-          resizeImg "rr.img" "+2560M" "rr_4GB.img"
+          resizeImg "rr_1GB.img" "+2560M" "rr.img"
 
           # echo "Image Converter"
           # qemu-img convert -O vmdk rr.img rr-dyn.vmdk
@@ -154,32 +155,31 @@ jobs:
       - name: Pack
         run: |
           cd rr
-          if [ -n "${{ env.VERSION }}" ]; then
-            zip -9 "rr-${{ env.VERSION }}.img.zip" rr.img
-            zip -9 "rr_4GB-${{ env.VERSION }}.img.zip" rr_4GB.img
-            # zip -9 "rr-${{ env.VERSION }}.vmdk-dyn.zip" rr-dyn.vmdk
-            # zip -9 "rr-${{ env.VERSION }}.vmdk-flat.zip" rr.vmdk rr-flat.vmdk
-          else
-            zip -9 "rr.img.zip" rr.img
-            zip -9 "rr_4GB.img.zip" rr_4GB.img
-          fi
+
+          [ -n "${{ env.VERSION }}" ] && NAME_SUFFIX="-${{ env.VERSION }}" || NAME_SUFFIX=""
+
+          zip -9 "rr_1GB${NAME_SUFFIX}.img.zip" rr_1GB.img
+          zip -9 "rr${NAME_SUFFIX}.img.zip" rr.img
+          # zip -9 "rr${NAME_SUFFIX}.vmdk-dyn.zip" rr-dyn.vmdk
+          # zip -9 "rr${NAME_SUFFIX}.vmdk-flat.zip" rr.vmdk rr-flat.vmdk
 
           # update.zip
           sha256sum update-list.yml update-check.sh > sha256sum
-          zip -9j update.zip update-list.yml update-check.sh
+          zip -9j "update${NAME_SUFFIX}.zip" update-list.yml update-check.sh
           while read F; do
             if [ -d "${F}" ]; then
               FTGZ="$(basename "${F}").tgz"
               tar -czf "${FTGZ}" -C "${F}" .
               sha256sum "${FTGZ}" >> sha256sum
-              zip -9j update.zip "${FTGZ}"
+              zip -9j "update${NAME_SUFFIX}.zip" "${FTGZ}"
               rm -f "${FTGZ}"
             else
               (cd $(dirname "${F}") && sha256sum $(basename "${F}")) >> sha256sum
-              zip -9j update.zip "${F}"
+              zip -9j "update${NAME_SUFFIX}.zip" "${F}"
             fi
           done < <(yq '.replace | explode(.) | to_entries | map([.key])[] | .[]' update-list.yml)
-          zip -9j update.zip sha256sum
+          zip -9j "update${NAME_SUFFIX}.zip" sha256sum
+
 
           # updateall.zip
           rm -f sha256sum
@@ -188,20 +188,20 @@ jobs:
           echo '  "files/p3/addons/": "/mnt/p3/addons/"' >> update-list.yml
           echo '  "files/p3/modules/": "/mnt/p3/modules/"' >> update-list.yml
 
-          zip -9j updateall.zip update-list.yml update-check.sh
+          zip -9j "updateall${NAME_SUFFIX}.zip" update-list.yml update-check.sh
           while read F; do
             if [ -d "${F}" ]; then
               FTGZ="$(basename "${F}").tgz"
               tar -czf "${FTGZ}" -C "${F}" .
               sha256sum "${FTGZ}" >> sha256sum
-              zip -9j updateall.zip "${FTGZ}"
+              zip -9j "updateall${NAME_SUFFIX}.zip" "${FTGZ}"
               rm -f "${FTGZ}"
             else
               (cd $(dirname "${F}") && sha256sum $(basename "${F}")) >> sha256sum
-              zip -9j updateall.zip "${F}"
+              zip -9j "updateall${NAME_SUFFIX}.zip" "${F}"
             fi
           done < <(yq '.replace | explode(.) | to_entries | map([.key])[] | .[]' update-list.yml)
-          zip -9j updateall.zip sha256sum
+          zip -9j "updateall${NAME_SUFFIX}.zip" sha256sum
 
       # Upload artifact
       - name: Upload
