@@ -143,8 +143,8 @@ jobs:
 
           sudo losetup --detach ${LOOPX}
 
-          echo "Create RR_4GB image"
-          resizeImg "rr.img" "+3072M" "rr_4GB.img"
+          echo "Create RR_4GB image"  # $((1024 * 3 - 512))
+          resizeImg "rr.img" "+2560M" "rr_4GB.img"
 
           # echo "Image Converter"
           # qemu-img convert -O vmdk rr.img rr-dyn.vmdk
