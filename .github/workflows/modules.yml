@@ -262,7 +262,7 @@ jobs:
 
           echo "get firmware"
           SOURCE=/tmp/linux-firmware
-          git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
+          git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
           while read L; do
             if [ -e "${SOURCE}/${L}" ]; then
               mkdir -p "`dirname firmware/${L}`"
