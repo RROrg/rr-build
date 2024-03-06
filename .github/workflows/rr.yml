@@ -18,10 +18,6 @@ on:
         description: "pre release"
         default: false
         type: boolean
-      br2tag:
-        description: "buildroot tag"
-        default: ""
-        type: string
 
 jobs:
   build:
@@ -100,18 +96,19 @@ jobs:
           getLKMs "files/p3/lkms" ${{ inputs.prerelease }}
           getAddons "files/p3/addons" ${{ inputs.prerelease }}
           getModules "files/p3/modules" ${{ inputs.prerelease }}
+          getBuildroot "files/p3" ${{ inputs.prerelease }}
           echo "OK"
 
       # Build incremental
       - name: Build image
         run: |
           cd rr
-          echo "Create RR_1GB image"
           . scripts/func.sh "${{ secrets.RRORG }}"
-          echo "Create RR image"
+
+          echo "Create RR_1GB image"
           gzip -dc "files/grub.img.gz" >"rr_1GB.img"
           fdisk -l "rr_1GB.img"
-          
+
           LOOPX=$(sudo losetup -f)
           sudo losetup -P "${LOOPX}" "rr_1GB.img"
 
@@ -121,15 +118,8 @@ jobs:
           sudo mount ${LOOPX}p1 "/tmp/p1"
           sudo mount ${LOOPX}p3 "/tmp/p3"
 
-          echo "Get Buildroot"
-          BR2TAG="${{ inputs.br2tag }}"
-          [ -z "${BR2TAG}" ] && BR2TAG="latest"
-          getBuildroot "br" "${BR2TAG}"
-          [ ! -f "br/bzImage-rr" -o ! -f "br/initrd-rr" ] && return 1
-          
           echo "Repack initrd"
-          cp -f "br/bzImage-rr" "files/p3/bzImage-rr"
-          repackInitrd "br/initrd-rr" "files/initrd" "files/p3/initrd-rr"
+          repackInitrd "files/p3/initrd-rr" "files/initrd"
 
           echo "Copying files"
           sudo cp -Rf "files/p1/"* "/tmp/p1"
@@ -155,30 +145,31 @@ jobs:
       - name: Pack
         run: |
           cd rr
+          
+          VERSION="${{ env.VERSION }}"
+          VERSION="${VERSION:-"test"}"
 
-          [ -n "${{ env.VERSION }}" ] && NAME_SUFFIX="-${{ env.VERSION }}" || NAME_SUFFIX=""
-
-          zip -9 "rr_1GB${NAME_SUFFIX}.img.zip" rr_1GB.img
-          zip -9 "rr${NAME_SUFFIX}.img.zip" rr.img
-          # zip -9 "rr${NAME_SUFFIX}.vmdk-dyn.zip" rr-dyn.vmdk
-          # zip -9 "rr${NAME_SUFFIX}.vmdk-flat.zip" rr.vmdk rr-flat.vmdk
+          zip -9 "rr_1GB-${VERSION}.img.zip" rr_1GB.img
+          zip -9 "rr-${VERSION}.img.zip" rr.img
+          # zip -9 "rr-${VERSION}.vmdk-dyn.zip" rr-dyn.vmdk
+          # zip -9 "rr-${VERSION}.vmdk-flat.zip" rr.vmdk rr-flat.vmdk
 
           # update.zip
           sha256sum update-list.yml update-check.sh > sha256sum
-          zip -9j "update${NAME_SUFFIX}.zip" update-list.yml update-check.sh
+          zip -9j "update-${VERSION}.zip" update-list.yml update-check.sh
           while read F; do
             if [ -d "${F}" ]; then
               FTGZ="$(basename "${F}").tgz"
               tar -czf "${FTGZ}" -C "${F}" .
               sha256sum "${FTGZ}" >> sha256sum
-              zip -9j "update${NAME_SUFFIX}.zip" "${FTGZ}"
+              zip -9j "update-${VERSION}.zip" "${FTGZ}"
               rm -f "${FTGZ}"
             else
               (cd $(dirname "${F}") && sha256sum $(basename "${F}")) >> sha256sum
-              zip -9j "update${NAME_SUFFIX}.zip" "${F}"
+              zip -9j "update-${VERSION}.zip" "${F}"
             fi
           done < <(yq '.replace | explode(.) | to_entries | map([.key])[] | .[]' update-list.yml)
-          zip -9j "update${NAME_SUFFIX}.zip" sha256sum
+          zip -9j "update-${VERSION}.zip" sha256sum
 
 
           # updateall.zip
@@ -188,23 +179,23 @@ jobs:
           echo '  "files/p3/addons/": "/mnt/p3/addons/"' >> update-list.yml
           echo '  "files/p3/modules/": "/mnt/p3/modules/"' >> update-list.yml
 
-          zip -9j "updateall${NAME_SUFFIX}.zip" update-list.yml update-check.sh
+          zip -9j "updateall-${VERSION}.zip" update-list.yml update-check.sh
           while read F; do
             if [ -d "${F}" ]; then
               FTGZ="$(basename "${F}").tgz"
               tar -czf "${FTGZ}" -C "${F}" .
               sha256sum "${FTGZ}" >> sha256sum
-              zip -9j "updateall${NAME_SUFFIX}.zip" "${FTGZ}"
+              zip -9j "updateall-${VERSION}.zip" "${FTGZ}"
               rm -f "${FTGZ}"
             else
               (cd $(dirname "${F}") && sha256sum $(basename "${F}")) >> sha256sum
-              zip -9j "updateall${NAME_SUFFIX}.zip" "${F}"
+              zip -9j "updateall-${VERSION}.zip" "${F}"
             fi
           done < <(yq '.replace | explode(.) | to_entries | map([.key])[] | .[]' update-list.yml)
-          zip -9j "updateall${NAME_SUFFIX}.zip" sha256sum
+          zip -9j "updateall-${VERSION}.zip" sha256sum
 
       # Upload artifact
-      - name: Upload
+      - name: Upload to Artifacts
         if: env.VERSION == ''
         uses: actions/upload-artifact@v3
         with:
@@ -224,6 +215,8 @@ jobs:
           artifacts: |
             rr/rr*.zip
             rr/update*.zip
+          body: |
+            - [Changelog](https://t.me/RR_Changelog)
           owner: RROrg
           repo: rr
           token: ${{ secrets.RRORG }}

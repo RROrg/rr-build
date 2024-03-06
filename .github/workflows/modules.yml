@@ -311,23 +311,32 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: download to artifacts
-        if: env.VERSION != ''
         uses: actions/download-artifact@v3
         with:
           name: modules
           path: ./modules
 
       - name: delete-artifact
-        if: env.VERSION != ''
         uses: geekyeggo/delete-artifact@v2
         with:
           name: modules
 
       - name: Zip modules
-        if: env.VERSION != ''
         run: |
-          echo "${{ env.VERSION }}" > "modules/VERSION"
-          zip -9 modules.zip -j modules/*
+          VERSION="${{ env.VERSION }}"
+          VERSION="${VERSION:-"test"}"
+
+          echo "${VERSION}" > "modules/VERSION"
+          zip -9 modules-${VERSION}.zip -j modules/*
+
+      - name: Upload to Artifacts
+        if: env.VERSION == ''
+        uses: actions/upload-artifact@v3
+        with:
+          name: modules
+          path: |
+            modules*.zip
+          retention-days: 5
 
       - name: Release
         if: env.VERSION != ''
@@ -335,7 +344,7 @@ jobs:
         with:
           tag: ${{ env.VERSION }}
           prerelease: ${{ inputs.prerelease }}
-          artifacts: modules.zip
+          artifacts: modules*.zip
           owner: RROrg
           repo: rr-modules
           token: ${{ secrets.RRORG }}

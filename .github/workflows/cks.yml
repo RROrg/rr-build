@@ -220,23 +220,32 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: download to artifacts
-        if: env.VERSION != ''
         uses: actions/download-artifact@v3
         with:
           name: rr-cks
           path: ./rr-cks
 
       - name: delete-artifact
-        if: env.VERSION != ''
         uses: geekyeggo/delete-artifact@v2
         with:
           name: rr-cks
 
       - name: Zip modules
-        if: env.VERSION != ''
         run: |
-          echo "${{ env.VERSION }}" > "rr-cks/VERSION"
-          zip -9 rr-cks.zip -j rr-cks/*
+          VERSION="${{ env.VERSION }}"
+          VERSION="${VERSION:-"test"}"
+
+          echo "${VERSION}" > "rr-cks/VERSION"
+          zip -9 rr-cks-${VERSION}.zip -j rr-cks/*
+
+      - name: Upload to Artifacts
+        if: env.VERSION == ''
+        uses: actions/upload-artifact@v3
+        with:
+          name: rr-cks
+          path: |
+            rr-cks*.zip
+          retention-days: 5
 
       - name: Release
         if: env.VERSION != ''
@@ -244,7 +253,7 @@ jobs:
         with:
           tag: ${{ env.VERSION }}
           prerelease: ${{ inputs.prerelease }}
-          artifacts: rr-cks.zip
+          artifacts: rr-cks*.zip
           owner: RROrg
           repo: rr-cks
           token: ${{ secrets.RRORG }}

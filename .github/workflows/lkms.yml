@@ -179,23 +179,32 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: download to artifacts
-        if: env.VERSION != ''
         uses: actions/download-artifact@v3
         with:
           name: rp-lkms
           path: ./rp-lkms
 
       - name: delete-artifact
-        if: env.VERSION != ''
         uses: geekyeggo/delete-artifact@v2
         with:
           name: rp-lkms
 
       - name: Zip lkms
-        if: env.VERSION != ''
         run: |
-          echo "${{ env.VERSION }}" > "rp-lkms/VERSION"
-          zip -9 rp-lkms.zip -j rp-lkms/*
+          VERSION="${{ env.VERSION }}"
+          VERSION="${VERSION:-"test"}"
+
+          echo "${VERSION}" > "rp-lkms/VERSION"
+          zip -9 rp-lkms-${VERSION}.zip -j rp-lkms/*
+
+      - name: Upload to Artifacts
+        if: env.VERSION == ''
+        uses: actions/upload-artifact@v3
+        with:
+          name: rp-lkms
+          path: |
+            rp-lkms*.zip
+          retention-days: 5
 
       - name: Release
         if: env.VERSION != ''
@@ -203,7 +212,7 @@ jobs:
         with:
           tag: ${{ env.VERSION }}
           prerelease: ${{ inputs.prerelease }}
-          artifacts: rp-lkms.zip
+          artifacts: rp-lkms*.zip
           owner: RROrg
           repo: rr-lkms
           token: ${{ secrets.RRORG }}

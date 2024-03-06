@@ -85,25 +85,33 @@ jobs:
           [ -n "${BUILDROOT_VERSION}" ] && echo "BUILDROOT_VERSION=${BUILDROOT_VERSION}" >> $GITHUB_ENV || exit 1
           [ -n "${KERNEL_VERSION}" ] && echo "KERNEL_VERSION=${KERNEL_VERSION}" >> $GITHUB_ENV || exit 1
 
+      - name: Zip modules
+        run: |
+          cp -f buildroot/.rr-buildroot/output/images/bzImage bzImage-rr || exit 1
+          cp -f buildroot/.rr-buildroot/output/images/rootfs.cpio.xz initrd-rr || exit 1
+
+          VERSION="${{ env.VERSION }}"
+          VERSION="${VERSION:-"test"}"
+
+          echo "${VERSION}" > "VERSION"
+          zip -9 ${{ github.workspace }}/buildroot-${VERSION}.zip -j bzImage-rr initrd-rr VERSION
+
       - name: Upload artifact
         if: env.VERSION == ''
         uses: actions/upload-artifact@v3
         with:
           name: buildroot
           path: |
-            buildroot/.rr-buildroot/output/images/bzImage
-            buildroot/.rr-buildroot/output/images/rootfs.cpio.xz
+            buildroot*.zip 
+          retention-days: 5
 
-      # Publish a release if is a tag
       - name: Release
         if: env.VERSION != ''
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.VERSION }}
           prerelease: ${{ inputs.prerelease }}
-          artifacts: |
-            buildroot/.rr-buildroot/output/images/bzImage
-            buildroot/.rr-buildroot/output/images/rootfs.cpio.xz
+          artifacts: buildroot*.zip 
           body: |
             Buildroot version: ${{ env.BUILDROOT_VERSION }}
             Kernel version: ${{ env.KERNEL_VERSION }}

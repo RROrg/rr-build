@@ -65,8 +65,12 @@ jobs:
         run: |
           cd rr-addons
           . ./compile.sh
-          echo "${{ env.VERSION }}" > "VERSION"
-          zip -9 ${{ github.workspace }}/addons.zip -j *.addon VERSION
+
+          VERSION="${{ env.VERSION }}"
+          VERSION="${VERSION:-"test"}"
+
+          echo "${VERSION}" > "VERSION"
+          zip -9 ${{ github.workspace }}/addons-${VERSION}.zip -j *.addon VERSION
 
       - name: Upload to Artifacts
         if: env.VERSION == ''
@@ -74,7 +78,8 @@ jobs:
         with:
           name: addons
           path: |
-            addons.zip
+            addons*.zip
+          retention-days: 5
 
       - name: Release
         uses: ncipollo/release-action@v1
@@ -82,7 +87,7 @@ jobs:
         with:
           tag: ${{ env.VERSION }}
           prerelease: ${{ inputs.prerelease }}
-          artifacts: addons.zip
+          artifacts: addons*.zip
           owner: RROrg
           repo: rr-addons
           token: ${{ secrets.RRORG }}
