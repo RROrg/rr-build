@@ -14,6 +14,19 @@ on:
         description: "push"
         default: false
         type: boolean
+      grubver:
+        description: "grub version"
+        default: "grub-2.12"
+        type: string
+      bioslst:
+        description: "bios list"
+        default: "i386-pc i386-efi x86_64-efi"
+        type: string
+      namestr:
+        description: "name string"
+        default: "RR"
+        type: string
+
 jobs:
   grub:
     runs-on: ubuntu-latest
@@ -35,11 +48,11 @@ jobs:
           sudo timedatectl set-timezone "Asia/Shanghai"
 
           sudo apt update
-          sudo apt install -y build-essential bison flex dosfstools
+          sudo apt install -y autoconf automake autopoint gettext build-essential bison flex libtool dosfstools e2fsprogs
 
       - name: Make Grub
         run: |
-          . rr/scripts/grub.sh "grub-2.06" "i386-pc i386-efi x86_64-efi" "RR"
+          . rr/scripts/grub.sh "${{ inputs.grubver}}" "${{ inputs.bioslst}}" "${{ inputs.namestr}}"
 
       - name: Upload artifact
         if: success() && inputs.push == false
