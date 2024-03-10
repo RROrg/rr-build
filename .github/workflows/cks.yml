@@ -37,6 +37,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
         with:
+          repository: RROrg/rp-modules
+          token: ${{ secrets.RRORG }}
+          path: rp-modules
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
           repository: RROrg/rr-cks
           token: ${{ secrets.RRORG }}
           path: rr-cks
@@ -64,13 +71,13 @@ jobs:
             exit 1
           fi
 
-          . rr-cks/compile.sh
+          . rp-modules/compile-ck.sh
           echo "----------------- Env  -----------------"
           makeEnvDeploy ${ROOT_PATH} ${VERSION} ${PLATFORM}
           echo "-------------- Make Kernel -------------"
           makekernel ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 output
           echo "-------------- Make modules ------------"
-          makemodules ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 rr-cks/src/5.10.55 modules
+          makemodules ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 rp-modules/src/5.10.55-ck modules
           echo "--------------- Make i915 --------------"
           makei915 ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 intel-gpu-i915-backports i915
 
@@ -79,7 +86,7 @@ jobs:
 
       - name: Tar to Artifacts
         run: |
-          . rr-cks/compile.sh
+          . rp-modules/compile-ck.sh
 
           ROOT_PATH=${{ github.workspace }}
           VERSION=${{ matrix.version }}

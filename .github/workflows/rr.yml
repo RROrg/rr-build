@@ -145,7 +145,7 @@ jobs:
       - name: Pack
         run: |
           cd rr
-          
+
           VERSION="${{ env.VERSION }}"
           VERSION="${VERSION:-"test"}"
 
