@@ -37,6 +37,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
         with:
+          repository: RROrg/buildroot
+          token: ${{ secrets.RRORG }}
+          path: buildroot
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
           repository: RROrg/rr
           token: ${{ secrets.RRORG }}
           path: rr
@@ -52,7 +59,7 @@ jobs:
 
       - name: Make Grub
         run: |
-          . rr/scripts/grub.sh "${{ inputs.grubver}}" "${{ inputs.bioslst}}" "${{ inputs.namestr}}"
+          . buildroot/grub_rr.sh "${{ inputs.grubver}}" "${{ inputs.bioslst}}" "${{ inputs.namestr}}"
 
       - name: Upload artifact
         if: success() && inputs.push == false
@@ -67,8 +74,7 @@ jobs:
         run: |
           if [ -f "grub.img.gz" ]; then
             echo "Copy img ..."
-            mv -f grub.img.gz rr/files/grub.img.gz
-            cp -f rr/files/grub.img.gz rr/files/initrd/opt/rr/grub.img.gz
+            mv -f grub.img.gz rr/files/initrd/opt/rr/grub.img.gz
 
             cd rr
             echo "Git push ..."

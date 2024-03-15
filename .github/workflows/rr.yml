@@ -72,7 +72,7 @@ jobs:
 
             # Modify Source File
             echo "${VERSION}" > VERSION
-            echo "${VERSION}" > files/p1/RR_VERSION
+            echo "${VERSION}" > files/mnt/p1/RR_VERSION
             sed 's/^RR_VERSION=.*/RR_VERSION="'${VERSION}'"/' -i files/initrd/opt/rr/include/consts.sh
 
             git checkout main
@@ -88,15 +88,24 @@ jobs:
       # Convert po2mo, Get extractor, LKMs, addons and Modules
       - name: Convert po2mo, Get extractor, LKMs, addons and Modules
         run: |
+
+          PRE="${{ inputs.prerelease }}"
+
           cd rr
           . scripts/func.sh "${{ secrets.RRORG }}"
+
+          echo "Get extractor"
+          getCKs "files/mnt/p3/cks" "${PRE}"
+          getLKMs "files/mnt/p3/lkms" "${PRE}"
+          getAddons "files/mnt/p3/addons" "${PRE}"
+          getModules "files/mnt/p3/modules" "${PRE}"
+          getBuildroot "files/mnt/p3" "${PRE}"
+          getExtractor "files/mnt/p3/extractor"
+
+          echo "Repack initrd"
           convertpo2mo "files/initrd/opt/rr/lang"
-          getExtractor "files/p3/extractor"
-          getCKs "files/p3/cks" ${{ inputs.prerelease }}
-          getLKMs "files/p3/lkms" ${{ inputs.prerelease }}
-          getAddons "files/p3/addons" ${{ inputs.prerelease }}
-          getModules "files/p3/modules" ${{ inputs.prerelease }}
-          getBuildroot "files/p3" ${{ inputs.prerelease }}
+          repackInitrd "files/mnt/p3/initrd-rr" "files/initrd"
+
           echo "OK"
 
       # Build incremental
@@ -106,7 +115,7 @@ jobs:
           . scripts/func.sh "${{ secrets.RRORG }}"
 
           echo "Create RR_1GB image"
-          gzip -dc "files/grub.img.gz" >"rr_1GB.img"
+          gzip -dc "files/initrd/opt/rr/grub.img.gz" >"rr_1GB.img"
           fdisk -l "rr_1GB.img"
 
           LOOPX=$(sudo losetup -f)
@@ -118,12 +127,9 @@ jobs:
           sudo mount ${LOOPX}p1 "/tmp/p1"
           sudo mount ${LOOPX}p3 "/tmp/p3"
 
-          echo "Repack initrd"
-          repackInitrd "files/p3/initrd-rr" "files/initrd"
-
           echo "Copying files"
-          sudo cp -Rf "files/p1/"* "/tmp/p1"
-          sudo cp -Rf "files/p3/"* "/tmp/p3"
+          sudo cp -Rf "files/mnt/p1/"* "/tmp/p1"
+          sudo cp -Rf "files/mnt/p3/"* "/tmp/p3"
           sync
 
           echo "Unmount image file"
@@ -174,10 +180,10 @@ jobs:
 
           # updateall.zip
           rm -f sha256sum
-          echo '  "files/p3/cks/": "/mnt/p3/cks/"' >> update-list.yml
-          echo '  "files/p3/lkms/": "/mnt/p3/lkms/"' >> update-list.yml
-          echo '  "files/p3/addons/": "/mnt/p3/addons/"' >> update-list.yml
-          echo '  "files/p3/modules/": "/mnt/p3/modules/"' >> update-list.yml
+          echo '  "files/mnt/p3/cks/": "/mnt/p3/cks/"' >> update-list.yml
+          echo '  "files/mnt/p3/lkms/": "/mnt/p3/lkms/"' >> update-list.yml
+          echo '  "files/mnt/p3/addons/": "/mnt/p3/addons/"' >> update-list.yml
+          echo '  "files/mnt/p3/modules/": "/mnt/p3/modules/"' >> update-list.yml
 
           zip -9j "updateall-${VERSION}.zip" update-list.yml update-check.sh
           while read F; do
