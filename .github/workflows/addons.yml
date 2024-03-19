@@ -63,11 +63,12 @@ jobs:
 
       - name: Build addon packages
         run: |
-          cd rr-addons
-          . ./compile.sh
-
           VERSION="${{ env.VERSION }}"
           VERSION="${VERSION:-"test"}"
+
+          cd rr-addons
+          sed -i "s/version:.*$/version: ${VERSION}/g" */manifest.yml
+          . ./compile.sh
 
           echo "${VERSION}" > "VERSION"
           zip -9 ${{ github.workspace }}/addons-${VERSION}.zip -j *.addon VERSION
