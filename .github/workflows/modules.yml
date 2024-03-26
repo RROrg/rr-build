@@ -191,7 +191,7 @@ jobs:
           [ -d "${PARTY3RD_PATH}" ] && sudo cp -rf "${PARTY3RD_PATH}/." "${ROOT_PATH}/output"
 
           echo "check depends"
-          for M in `ls ${ROOT_PATH}/output`; do
+          for M in $(ls ${ROOT_PATH}/output 2>/dev/null); do
             function _copydepends() {
               if [ ! -f "${ROOT_PATH}/output/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ]; then
                 if [ -f "${OFFICIAL_PATH}/${1}" ]; then
@@ -204,11 +204,11 @@ jobs:
               [ -z "${D}" -a -f "${ROOT_PATH}/output/${1}" ] && D="${ROOT_PATH}/output/${1}"
               [ -z "${D}" -a -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && D="${OFFICIAL_PATH/hda1/rd}/${1}"
               if [ -n "${D}" ]; then
-                modinfo "${D}" || true
-                depends=(`modinfo "${D}" | grep depends: | awk -F: '{print $2}' | awk '$1=$1' | sed 's/,/ /g'`) || true
+                # modinfo "${D}" || true
+                depends=($(modinfo "${D}" 2>/dev/null | grep depends: | awk -F: '{print $2}' | awk '$1=$1' | sed 's/,/ /g')) || true
                 if [ ${#depends[*]} -gt 0 ]; then
                   for k in ${depends[@]}; do
-                    [ -f "${ROOT_PATH}/output/${k}.ko" ] && continue  # Recursively skip wext-priv and wext-core dependencies on each other.
+                    [ -f "${ROOT_PATH}/output/${k}.ko" ] && continue # Recursively skip wext-priv and wext-core dependencies on each other.
                     _copydepends "${k}.ko"
                   done
                 fi
@@ -220,7 +220,7 @@ jobs:
             tar caf ${ROOT_PATH}/${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
           else
             tar caf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output .
-          fi
+          fi          
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v3

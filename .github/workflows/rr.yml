@@ -65,14 +65,14 @@ jobs:
           fi
 
           echo "VERSION: ${VERSION}"
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "VERSION=${VERSION}" >>$GITHUB_ENV
 
           if [ -n "${VERSION}" ]; then
             cd rr
 
             # Modify Source File
-            echo "${VERSION}" > VERSION
-            echo "${VERSION}" > files/mnt/p1/RR_VERSION
+            echo "${VERSION}" >VERSION
+            echo "${VERSION}" >files/mnt/p1/RR_VERSION
             sed 's/^RR_VERSION=.*/RR_VERSION="'${VERSION}'"/' -i files/initrd/opt/rr/include/consts.sh
 
             git checkout main
@@ -140,7 +140,7 @@ jobs:
 
           sudo losetup --detach ${LOOPX}
 
-          echo "Create RR_4GB image"  # $((1024 * 3 - 512))
+          echo "Create RR_4GB image" # $((1024 * 3 - 512))
           resizeImg "rr_1GB.img" "+2560M" "rr.img"
 
           # echo "Image Converter"
@@ -161,40 +161,39 @@ jobs:
           # zip -9 "rr-${VERSION}.vmdk-flat.zip" rr.vmdk rr-flat.vmdk
 
           # update.zip
-          sha256sum update-list.yml update-check.sh > sha256sum
+          sha256sum update-list.yml update-check.sh >sha256sum
           zip -9j "update-${VERSION}.zip" update-list.yml update-check.sh
           while read F; do
             if [ -d "${F}" ]; then
               FTGZ="$(basename "${F}").tgz"
               tar -czf "${FTGZ}" -C "${F}" .
-              sha256sum "${FTGZ}" >> sha256sum
+              sha256sum "${FTGZ}" >>sha256sum
               zip -9j "update-${VERSION}.zip" "${FTGZ}"
               rm -f "${FTGZ}"
             else
-              (cd $(dirname "${F}") && sha256sum $(basename "${F}")) >> sha256sum
+              (cd $(dirname "${F}") && sha256sum $(basename "${F}")) >>sha256sum
               zip -9j "update-${VERSION}.zip" "${F}"
             fi
           done < <(yq '.replace | explode(.) | to_entries | map([.key])[] | .[]' update-list.yml)
           zip -9j "update-${VERSION}.zip" sha256sum
 
-
           # updateall.zip
           rm -f sha256sum
-          echo '  "files/mnt/p3/cks/": "/mnt/p3/cks/"' >> update-list.yml
-          echo '  "files/mnt/p3/lkms/": "/mnt/p3/lkms/"' >> update-list.yml
-          echo '  "files/mnt/p3/addons/": "/mnt/p3/addons/"' >> update-list.yml
-          echo '  "files/mnt/p3/modules/": "/mnt/p3/modules/"' >> update-list.yml
+          echo '  "files/mnt/p3/cks/": "/mnt/p3/cks/"' >>update-list.yml
+          echo '  "files/mnt/p3/lkms/": "/mnt/p3/lkms/"' >>update-list.yml
+          echo '  "files/mnt/p3/addons/": "/mnt/p3/addons/"' >>update-list.yml
+          echo '  "files/mnt/p3/modules/": "/mnt/p3/modules/"' >>update-list.yml
 
           zip -9j "updateall-${VERSION}.zip" update-list.yml update-check.sh
           while read F; do
             if [ -d "${F}" ]; then
               FTGZ="$(basename "${F}").tgz"
               tar -czf "${FTGZ}" -C "${F}" .
-              sha256sum "${FTGZ}" >> sha256sum
+              sha256sum "${FTGZ}" >>sha256sum
               zip -9j "updateall-${VERSION}.zip" "${FTGZ}"
               rm -f "${FTGZ}"
             else
-              (cd $(dirname "${F}") && sha256sum $(basename "${F}")) >> sha256sum
+              (cd $(dirname "${F}") && sha256sum $(basename "${F}")) >>sha256sum
               zip -9j "updateall-${VERSION}.zip" "${F}"
             fi
           done < <(yq '.replace | explode(.) | to_entries | map([.key])[] | .[]' update-list.yml)

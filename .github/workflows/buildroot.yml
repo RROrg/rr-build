@@ -51,7 +51,7 @@ jobs:
           sudo apt update
           sudo apt install -y jq gawk cpio gettext libelf-dev qemu-utils 
           sudo snap install yq
-          
+
           df -h
 
       - name: Calculate version
