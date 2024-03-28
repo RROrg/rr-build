@@ -217,15 +217,15 @@ jobs:
             _copydepends "${M}"
           done
           if [ "${PLATFORM}" = "epyc7002" ]; then
-            tar caf ${ROOT_PATH}/${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
+            tar -zcf ${ROOT_PATH}/${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
           else
-            tar caf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output .
+            tar -zcf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output .
           fi          
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: modules
+          name: modules-${{ matrix.version }}-${{ matrix.platform }}
           path: |
             *.tgz
 
@@ -244,10 +244,11 @@ jobs:
           path: rr-modules
 
       - name: download to artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: modules
-          path: ./modules
+          path: output
+          pattern: modules-*
+          merge-multiple: true
 
       - name: firmware
         run: |
@@ -258,7 +259,11 @@ jobs:
           cp -rf ${PARTY3RD_PATH}/* firmware/
 
           echo "extract all modules"
-          for F in ./modules/*.tgz; do mkdir "${F%.tgz}" && tar -xzf "${F}" -C "${F%.tgz}"; done
+          for F in output/*.tgz; do 
+            echo "${F}"
+            mkdir -p "${F%.tgz}"
+            tar -zxf "${F}" -C "${F%.tgz}" || echo "Failed to extract ${F}"
+          done
 
           echo "get firmware"
           SOURCE=/tmp/linux-firmware
@@ -270,14 +275,14 @@ jobs:
             else
               [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
             fi
-          done < <(find ./modules -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
+          done < <(find output -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
 
-          tar caf firmware.tgz -C firmware .
+          tar -zcf firmware.tgz -C firmware .
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: modules
+          name: modules-firmware
           path: |
             firmware.tgz
 
@@ -311,27 +316,29 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: download to artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: modules
-          path: ./modules
+          path: output
+          pattern: modules-*
+          merge-multiple: true
 
       - name: delete-artifact
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@v5
         with:
-          name: modules
+          name: |
+            modules-*
 
       - name: Zip modules
         run: |
           VERSION="${{ env.VERSION }}"
           VERSION="${VERSION:-"test"}"
 
-          echo "${VERSION}" > "modules/VERSION"
-          zip -9 modules-${VERSION}.zip -j modules/*
+          echo "${VERSION}" > "output/VERSION"
+          zip -9 modules-${VERSION}.zip -j output/*
 
       - name: Upload to Artifacts
-        if: env.VERSION == ''
-        uses: actions/upload-artifact@v3
+        if: success() && env.VERSION == ''
+        uses: actions/upload-artifact@v4
         with:
           name: modules
           path: |
@@ -339,7 +346,7 @@ jobs:
           retention-days: 5
 
       - name: Release
-        if: env.VERSION != ''
+        if: success() && env.VERSION != ''
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.VERSION }}

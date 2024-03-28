@@ -130,17 +130,17 @@ jobs:
             _copydepends "${M}"
           done
           if [ "${PLATFORM}" = "epyc7002" ]; then
-            tar caf ${ROOT_PATH}/modules-${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
+            tar -zcf ${ROOT_PATH}/modules-${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
             gzip -c ${ROOT_PATH}/output/bzImage >${ROOT_PATH}/bzImage-${PLATFORM}-${VERSION}-${KVER}.gz
           else
-            tar caf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
+            tar -zcf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
             gzip -c ${ROOT_PATH}/output/bzImage >${ROOT_PATH}/bzImage-${PLATFORM}-${KVER}.gz
           fi
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: rr-cks
+          name: rr-cks-${{ matrix.version }}-${{ matrix.platform }}
           path: |
             *.tgz
             *.gz
@@ -160,10 +160,11 @@ jobs:
           path: rr-cks
 
       - name: download to artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: rr-cks
-          path: ./output
+          path: output
+          pattern: rr-cks-*
+          merge-multiple: true
 
       - name: firmware
         run: |
@@ -174,8 +175,12 @@ jobs:
           cp -rf ${PARTY3RD_PATH}/* firmware/
 
           echo "extract all modules"
-          for F in ./output/*.tgz; do mkdir "${F%.tgz}" && tar -xzf "${F}" -C "${F%.tgz}"; done
-
+          for F in output/*.tgz; do 
+            echo "${F}"
+            mkdir -p "${F%.tgz}"
+            tar -zxf "${F}" -C "${F%.tgz}" || echo "Failed to extract ${F}"
+          done
+          
           echo "get firmware"
           SOURCE=/tmp/linux-firmware
           git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
@@ -186,14 +191,14 @@ jobs:
             else
               [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
             fi
-          done < <(find ./output -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
+          done < <(find output -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
 
-          tar caf firmware.tgz -C firmware .
+          tar -zcf firmware.tgz -C firmware .
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: rr-cks
+          name: rr-cks-firmware
           path: |
             firmware.tgz
 
@@ -227,27 +232,29 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: download to artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: rr-cks
-          path: ./rr-cks
+          path: output
+          pattern: rr-cks-*
+          merge-multiple: true
 
       - name: delete-artifact
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@v5
         with:
-          name: rr-cks
+          name: |
+            rr-cks-*
 
       - name: Zip modules
         run: |
           VERSION="${{ env.VERSION }}"
           VERSION="${VERSION:-"test"}"
 
-          echo "${VERSION}" > "rr-cks/VERSION"
-          zip -9 rr-cks-${VERSION}.zip -j rr-cks/*
+          echo "${VERSION}" > "output/VERSION"
+          zip -9 rr-cks-${VERSION}.zip -j output/*
 
       - name: Upload to Artifacts
-        if: env.VERSION == ''
-        uses: actions/upload-artifact@v3
+        if: success() && env.VERSION == ''
+        uses: actions/upload-artifact@v4
         with:
           name: rr-cks
           path: |
@@ -255,7 +262,7 @@ jobs:
           retention-days: 5
 
       - name: Release
-        if: env.VERSION != ''
+        if: success() && env.VERSION != ''
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.VERSION }}

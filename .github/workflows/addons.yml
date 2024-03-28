@@ -74,8 +74,8 @@ jobs:
           zip -9 ${{ github.workspace }}/addons-${VERSION}.zip -j *.addon VERSION
 
       - name: Upload to Artifacts
-        if: env.VERSION == ''
-        uses: actions/upload-artifact@v3
+        if: success() && env.VERSION == ''
+        uses: actions/upload-artifact@v4
         with:
           name: addons
           path: |
@@ -84,7 +84,7 @@ jobs:
 
       - name: Release
         uses: ncipollo/release-action@v1
-        if: env.VERSION != ''
+        if: success() && env.VERSION != ''
         with:
           tag: ${{ env.VERSION }}
           prerelease: ${{ inputs.prerelease }}

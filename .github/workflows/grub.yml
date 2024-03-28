@@ -63,11 +63,12 @@ jobs:
 
       - name: Upload artifact
         if: success() && inputs.push == false
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: grub
           path: |
             grub.img.gz
+          retention-days: 5
 
       - name: Check and Push
         if: success() && inputs.push == true

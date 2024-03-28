@@ -143,9 +143,9 @@ jobs:
           makelkms ${{ github.workspace }} ${{ matrix.version }} ${{ matrix.platform }} rr-lkms output
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: rp-lkms
+          name: rp-lkms-${{ matrix.version }}-${{ matrix.platform }}
           path: |
             output/*
 
@@ -179,27 +179,29 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: download to artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: rp-lkms
-          path: ./rp-lkms
+          path: output
+          pattern: rp-lkms-*
+          merge-multiple: true
 
       - name: delete-artifact
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@v5
         with:
-          name: rp-lkms
+          name: |
+            rp-lkms-*
 
       - name: Zip lkms
         run: |
           VERSION="${{ env.VERSION }}"
           VERSION="${VERSION:-"test"}"
 
-          echo "${VERSION}" > "rp-lkms/VERSION"
-          zip -9 rp-lkms-${VERSION}.zip -j rp-lkms/*
+          echo "${VERSION}" > "output/VERSION"
+          zip -9 rp-lkms-${VERSION}.zip -j output/*
 
       - name: Upload to Artifacts
-        if: env.VERSION == ''
-        uses: actions/upload-artifact@v3
+        if: success() && env.VERSION == ''
+        uses: actions/upload-artifact@v4
         with:
           name: rp-lkms
           path: |
@@ -207,7 +209,7 @@ jobs:
           retention-days: 5
 
       - name: Release
-        if: env.VERSION != ''
+        if: success() && env.VERSION != ''
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.VERSION }}

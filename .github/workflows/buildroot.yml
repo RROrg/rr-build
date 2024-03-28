@@ -97,8 +97,8 @@ jobs:
           zip -9 ${{ github.workspace }}/buildroot-${VERSION}.zip -j bzImage-rr initrd-rr VERSION
 
       - name: Upload artifact
-        if: env.VERSION == ''
-        uses: actions/upload-artifact@v3
+        if: success() && env.VERSION == ''
+        uses: actions/upload-artifact@v4
         with:
           name: buildroot
           path: |
@@ -106,7 +106,7 @@ jobs:
           retention-days: 5
 
       - name: Release
-        if: env.VERSION != ''
+        if: success() && env.VERSION != ''
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.VERSION }}

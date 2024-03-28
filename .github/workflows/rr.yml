@@ -166,7 +166,7 @@ jobs:
           while read F; do
             if [ -d "${F}" ]; then
               FTGZ="$(basename "${F}").tgz"
-              tar -czf "${FTGZ}" -C "${F}" .
+              tar -zcf "${FTGZ}" -C "${F}" .
               sha256sum "${FTGZ}" >>sha256sum
               zip -9j "update-${VERSION}.zip" "${FTGZ}"
               rm -f "${FTGZ}"
@@ -188,7 +188,7 @@ jobs:
           while read F; do
             if [ -d "${F}" ]; then
               FTGZ="$(basename "${F}").tgz"
-              tar -czf "${FTGZ}" -C "${F}" .
+              tar -zcf "${FTGZ}" -C "${F}" .
               sha256sum "${FTGZ}" >>sha256sum
               zip -9j "updateall-${VERSION}.zip" "${FTGZ}"
               rm -f "${FTGZ}"
@@ -201,8 +201,8 @@ jobs:
 
       # Upload artifact
       - name: Upload to Artifacts
-        if: env.VERSION == ''
-        uses: actions/upload-artifact@v3
+        if: success() && env.VERSION == ''
+        uses: actions/upload-artifact@v4
         with:
           name: Images
           path: |
@@ -212,7 +212,7 @@ jobs:
 
       # Publish a release if is a tag
       - name: Release
-        if: env.VERSION != ''
+        if: success() && env.VERSION != ''
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.VERSION }}
