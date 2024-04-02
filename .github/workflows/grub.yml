@@ -56,6 +56,7 @@ jobs:
 
           sudo apt update
           sudo apt install -y autoconf automake autopoint gettext build-essential bison flex libtool dosfstools e2fsprogs
+          sudo apt install -y libfreetype6-dev unifont fonts-dejavu libfuse-dev liblzma-dev libzfslinux-dev
 
       - name: Make Grub
         run: |
