@@ -168,7 +168,7 @@ jobs:
           fi
 
           echo "copy official modules"
-          OM=(cpufreq_performance i915.ko processor.ko mlx4_core.ko mlx4_en.ko mlx4_ib.ko mlx5_ib.ko mlx5_core.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko)
+          OM=(cpufreq_performance i915.ko processor.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko)
           if echo ${F} | grep -qE "apollolake|braswell|broadwell|broadwellnk|broadwellnkv2|broadwellntbap|bromolow|denverton|geminilake|grantley|purley"; then
             OM+=(kvm-intel.ko)
           else
