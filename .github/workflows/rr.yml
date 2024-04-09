@@ -43,6 +43,7 @@ jobs:
 
           sudo apt update
           sudo apt install -y jq cpio gettext
+          sudo snap install yq
 
       # calculates the version number and push
       - name: Calculate version
@@ -206,7 +207,7 @@ jobs:
         with:
           name: Images
           path: |
-            rr/rr*.zip
+            rr/rr-*.zip
             rr/update*.zip
           retention-days: 5
 
@@ -218,10 +219,10 @@ jobs:
           tag: ${{ env.VERSION }}
           prerelease: ${{ inputs.prerelease }}
           artifacts: |
-            rr/rr*.zip
+            rr/rr-*.zip
             rr/update*.zip
           body: |
-            - [Changelog](https://t.me/RR_Changelog)
+            - Editing ...
           owner: RROrg
           repo: rr
           token: ${{ secrets.RRORG }}
