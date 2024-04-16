@@ -20,8 +20,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - version: 6.2
-            platform: apollolake
+          #- version: 6.2
+          #  platform: apollolake
 
           - version: 7.1
             platform: apollolake

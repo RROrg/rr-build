@@ -24,40 +24,40 @@ jobs:
     strategy:
       matrix:
         include:
-          - version: 6.2
-            platform: apollolake
-          - version: 6.2
-            platform: braswell
-          - version: 6.2
-            platform: broadwell
-          - version: 6.2
-            platform: broadwellnk
-          - version: 6.2
-            platform: broadwellntbap
-          - version: 6.2
-            platform: bromolow
-          - version: 6.2
-            platform: denverton
-          # checkout 6.2.4
-          - version: 6.2
-            platform: geminilake
-          # checkout 6.2.4
-          - version: 6.2
-            platform: grantley
-          # checkout 6.2.4
-          - version: 6.2
-            platform: kvmx64
-          # checkout 6.2.4
-          - version: 6.2
-            platform: purley
-          # checkout 6.2.4
-          - version: 6.2
-            platform: v1000
+          # - version: 6.2
+          #   platform: apollolake
+          # - version: 6.2
+          #   platform: braswell
+          # - version: 6.2
+          #   platform: broadwell
+          # - version: 6.2
+          #   platform: broadwellnk
+          # - version: 6.2
+          #   platform: broadwellntbap
+          # - version: 6.2
+          #   platform: bromolow
+          # - version: 6.2
+          #   platform: denverton
+          # # checkout 6.2.4
+          # - version: 6.2
+          #   platform: geminilake
+          # # checkout 6.2.4
+          # - version: 6.2
+          #   platform: grantley
+          # # checkout 6.2.4
+          # - version: 6.2
+          #   platform: kvmx64
+          # # checkout 6.2.4
+          # - version: 6.2
+          #   platform: purley
+          # # checkout 6.2.4
+          # - version: 6.2
+          #   platform: v1000
 
           - version: 7.1
             platform: apollolake
-          - version: 7.1
-            platform: braswell
+          # - version: 7.1
+          #   platform: braswell
           - version: 7.1
             platform: broadwell
           - version: 7.1
@@ -66,16 +66,16 @@ jobs:
             platform: broadwellnkv2
           - version: 7.1
             platform: broadwellntbap
-          - version: 7.1
-            platform: bromolow
+          # - version: 7.1
+          #   platform: bromolow
           - version: 7.1
             platform: denverton
           - version: 7.1
             platform: epyc7002
           - version: 7.1
             platform: geminilake
-          - version: 7.1
-            platform: grantley
+          # - version: 7.1
+          #   platform: grantley
           - version: 7.1
             platform: kvmx64
           - version: 7.1
@@ -87,8 +87,8 @@ jobs:
 
           - version: 7.2
             platform: apollolake
-          - version: 7.2
-            platform: braswell
+          # - version: 7.2
+          #   platform: braswell
           - version: 7.2
             platform: broadwell
           - version: 7.2
@@ -97,16 +97,16 @@ jobs:
             platform: broadwellnkv2
           - version: 7.2
             platform: broadwellntbap
-          #- version: 7.2
-          #  platform: bromolow
+          # - version: 7.2
+          #   platform: bromolow
           - version: 7.2
             platform: denverton
           - version: 7.2
             platform: epyc7002
           - version: 7.2
             platform: geminilake
-          - version: 7.2
-            platform: grantley
+          # - version: 7.2
+          #   platform: grantley
           - version: 7.2
             platform: kvmx64
           - version: 7.2
