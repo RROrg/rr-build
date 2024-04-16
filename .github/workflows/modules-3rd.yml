@@ -1,0 +1,72 @@
+#
+# Copyright (C) 2022 Ing <https://github.com/wjz304>
+#
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
+
+name: Get modules 3rd
+
+on:
+  workflow_dispatch:
+
+jobs:
+  official:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-modules
+          token: ${{ secrets.RRORG }}
+          path: rr-modules
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: Get official modules
+        run: |
+          MSG=""
+          URL="https://api.github.com/repos/MoetaYuko/intel-gpu-i915-backports/releases"
+          TAG=$(curl -skL -H "Authorization: token ${{ secrets.RRORG }}" "${URL}" | jq -r ".[0].tag_name")
+          while read ID NAME; do
+            if echo "${NAME}" | grep -q 'epyc7002'; then
+              if echo "${NAME}" | grep -q '7.1'; then
+                DESTPATH="rr-modules/thirdparty/epyc7002-7.1-5.10.55"
+              elif echo "${NAME}" | grep -q '7.2'; then
+                DESTPATH="rr-modules/thirdparty/epyc7002-7.2-5.10.55"
+              else
+                echo "Unknown version"
+                exit 1
+              fi
+              STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${{ secrets.RRORG }}" -H "Accept: application/octet-stream" "${URL}/assets/${ID}" -o "i915.zip")
+              echo "TAG=${TAG}; Status=${STATUS}"
+              if [ ${STATUS:-0} -ne 200 ]; then
+                echo "Download failed"
+                exit 1
+              fi
+              mkdir -p i915
+              unzip "i915.zip" -d "i915"
+              cp -rf i915/modules/* ${DESTPATH}
+              cp -rf i915/firmware/* rr-modules/thirdparty/firmware
+              rm -rf i915.zip i915
+              MSG="${MSG} i915(${TAG})"
+            fi
+          done <<<$(curl -skL -H "Authorization: token ${{ secrets.RRORG }}" "${URL}/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
+
+          echo "MSG=${MSG}" >> $GITHUB_ENV
+
+      - name: Check and Push
+        run: |
+          cd rr-modules
+          git pull
+          status=$(git status -s | grep -E 'thirdparty' | awk '{printf " %s", $2}')
+          if [ -n "${status}" ]; then
+            git add ${status}
+            git commit -m "update ${{ env.MSG }}"
+            git push -f
+          fi
