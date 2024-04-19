@@ -26,8 +26,8 @@ jobs:
           - version: 7.1
             platform: apollolake
 
-          - version: 7.2
-            platform: apollolake
+          #- version: 7.2
+          #  platform: apollolake
 
     runs-on: ubuntu-latest
     steps:
@@ -102,12 +102,12 @@ jobs:
 
       - name: Check and Push
         run: |
-          if [ `ls eudev/*.tgz 2> /dev/null | wc -l` -gt 0 ]; then
+          if [ $(ls eudev/*.tgz 2>/dev/null | wc -l) -gt 0 ]; then
             echo "Copy eudev ..."
             rm -rf rr-addons/eudev/all/addons/eudev*.tgz
             mkdir -p rr-addons/eudev/all/addons/
             mv -f output/eudev-*.tgz rr-addons/eudev/all/addons/
-
+          
             cd rr-addons
             echo "Git push ..."
             git pull
@@ -120,3 +120,4 @@ jobs:
           else
             echo "No change ..."
           fi
+          

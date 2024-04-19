@@ -1,0 +1,91 @@
+#
+# Copyright (C) 2022 Ing <https://github.com/wjz304>
+#
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
+
+name: Update addons update
+
+on:
+  workflow_dispatch:
+    inputs:
+      push:
+        description: "push"
+        default: false
+        type: boolean
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-addons
+          token: ${{ secrets.RRORG }}
+          path: rr-addons
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-misc
+          token: ${{ secrets.RRORG }}
+          path: rr-misc
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: Checkout SynoCommunity Source and Docker Image
+        run: |
+          docker pull ghcr.io/synocommunity/spksrc
+          git clone --depth=1 https://github.com/SynoCommunity/spksrc.git
+          cp -rf rr-misc/src/* spksrc
+
+      - name: Build Package
+        run: |
+          ROOT_PATH="${{ github.workspace }}"
+          MAKE_ARCH="x64-7.1" # [x64-7.1, aarch64-7.1]
+          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-misc ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
+          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-eudev ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
+
+          if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-misc_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
+            mkdir -p ${ROOT_PATH}/spk
+            tar -xf ${ROOT_PATH}/spksrc/packages/rr-misc_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
+            tar -zxf ${ROOT_PATH}/spk/package.tgz -C rr-addons/misc/all/usr
+            rm -rf ${ROOT_PATH}/spk
+          fi
+          if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-eudev_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
+            mkdir -p ${ROOT_PATH}/spk
+            tar -xf ${ROOT_PATH}/spksrc/packages/rr-eudev_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
+            cp -f ${ROOT_PATH}/spk/package.tgz rr-addons/eudev/all/addons/eudev-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
+            rm -rf ${ROOT_PATH}/spk
+          fi
+
+      - name: Upload to Artifacts
+        if: success() && inputs.push == false
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: |
+            spksrc/packages/*.spk
+          retention-days: 5
+
+      - name: Check and Push
+        if: success() && inputs.push == true
+        run: |
+          cd rr-addons
+          echo "Git push ..."
+          git pull
+          status=$(git status -s | grep -E 'misc|eudev' | awk '{printf " %s", $2}')
+          if [ -n "${status}" ]; then
+            git add ${status}
+            git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
+            git push -f
+          fi
