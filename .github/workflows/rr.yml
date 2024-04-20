@@ -205,10 +205,20 @@ jobs:
         if: success() && env.VERSION == ''
         uses: actions/upload-artifact@v4
         with:
-          name: Images
+          name: rr-test
           path: |
             rr/rr-*.zip
             rr/update*.zip
+          retention-days: 5
+
+      # Upload artifact
+      - name: Upload to Artifacts
+        if: success() && env.VERSION != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: rr-${{ env.VERSION }}
+          path: |
+            rr/rr_*.zip
           retention-days: 5
 
       # Publish a release if is a tag
