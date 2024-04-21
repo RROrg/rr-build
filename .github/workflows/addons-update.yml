@@ -54,6 +54,7 @@ jobs:
           MAKE_ARCH="x64-7.1" # [x64-7.1, aarch64-7.1]
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-misc ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-eudev ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
+          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-sensors ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
 
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-misc_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
@@ -67,7 +68,12 @@ jobs:
             cp -f ${ROOT_PATH}/spk/package.tgz rr-addons/eudev/all/addons/eudev-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
-
+          if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-sensors_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
+            mkdir -p ${ROOT_PATH}/spk
+            tar -xf ${ROOT_PATH}/spksrc/packages/rr-sensors_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
+            cp -f ${ROOT_PATH}/spk/package.tgz rr-addons/sensors/all/addons/sensors-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
+            rm -rf ${ROOT_PATH}/spk
+          fi
       - name: Upload to Artifacts
         if: success() && inputs.push == false
         uses: actions/upload-artifact@v4
@@ -83,7 +89,7 @@ jobs:
           cd rr-addons
           echo "Git push ..."
           git pull
-          status=$(git status -s | grep -E 'misc|eudev' | awk '{printf " %s", $2}')
+          status=$(git status -s | grep -E 'misc|eudev|sensors' | awk '{printf " %s", $2}')
           if [ -n "${status}" ]; then
             git add ${status}
             git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
