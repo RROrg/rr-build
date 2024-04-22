@@ -168,12 +168,11 @@ jobs:
           fi
 
           echo "copy official modules"
-          OM=(cpufreq_performance i915.ko processor.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko)
-          if echo ${F} | grep -qE "apollolake|braswell|broadwell|broadwellnk|broadwellnkv2|broadwellntbap|bromolow|denverton|geminilake|grantley|purley"; then
-            OM+=(kvm-intel.ko)
-          else
-            OM+=(kvm-amd.ko)
-          fi
+          IU="apollolake braswell broadwell broadwellnk broadwellnkv2 broadwellntbap bromolow denverton geminilake grantley kvmx64 purley"
+          AU="epyc7002 r1000 v1000"
+          OM=(cpufreq_performance.ko i915.ko processor.ko vfio.ko exfat.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko etxhci-hcd.ko)
+          echo "epyc7002" | grep -qw "${PLATFORM}" || OM+=(mlx_compat.ko mlx4_core.ko mlx4_en.ko mlx4_ib.ko mlx5_core.ko mlx5_ib.ko ib_core.ko qedr.ko)
+          echo "${IU}" | grep -qw "${PLATFORM}" && OM+=(kvm-intel.ko) || OM+=(kvm-amd.ko)
           for M in ${OM[@]}; do
             function _copydepends() {
               [ -f "${OFFICIAL_PATH}/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && sudo cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output"
