@@ -45,8 +45,8 @@ jobs:
           # - version: 6.2
           #   platform: grantley
           # # checkout 6.2.4
-          # - version: 6.2
-          #   platform: kvmx64
+          ## - version: 6.2
+          ##   platform: kvmx64
           # # checkout 6.2.4
           # - version: 6.2
           #   platform: purley
@@ -76,8 +76,8 @@ jobs:
             platform: geminilake
           # - version: 7.1
           #   platform: grantley
-          - version: 7.1
-            platform: kvmx64
+          ## - version: 7.1
+          ##   platform: kvmx64
           - version: 7.1
             platform: purley
           - version: 7.1
@@ -107,8 +107,8 @@ jobs:
             platform: geminilake
           # - version: 7.2
           #   platform: grantley
-          - version: 7.2
-            platform: kvmx64
+          ## - version: 7.2
+          ##   platform: kvmx64
           - version: 7.2
             platform: purley
           - version: 7.2
@@ -168,7 +168,7 @@ jobs:
           fi
 
           echo "copy official modules"
-          IU="apollolake braswell broadwell broadwellnk broadwellnkv2 broadwellntbap bromolow denverton geminilake grantley kvmx64 purley"
+          IU="apollolake braswell broadwell broadwellnk broadwellnkv2 broadwellntbap bromolow denverton geminilake grantley purley"
           AU="epyc7002 r1000 v1000"
           OM=(cpufreq_performance.ko i915.ko processor.ko vfio.ko exfat.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko etxhci-hcd.ko)
           echo "epyc7002" | grep -qw "${PLATFORM}" || OM+=(mlx_compat.ko mlx4_core.ko mlx4_en.ko mlx4_ib.ko mlx5_core.ko mlx5_ib.ko ib_core.ko qedr.ko)
