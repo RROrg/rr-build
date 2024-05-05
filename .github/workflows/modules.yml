@@ -242,6 +242,12 @@ jobs:
           token: ${{ secrets.RRORG }}
           path: rr-modules
 
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
       - name: download to artifacts
         uses: actions/download-artifact@v4
         with:
@@ -291,6 +297,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@main
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
 
       - name: Calculate version
         run: |

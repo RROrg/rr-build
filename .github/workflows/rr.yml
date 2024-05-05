@@ -40,6 +40,7 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
 
           sudo apt update
           sudo apt install -y jq cpio gettext
@@ -49,7 +50,9 @@ jobs:
       - name: Calculate version
         run: |
           # Calculate version
+          TAGDATE="$(date +'%Y%m%d%H%M')"
           VERSION=""
+
           if [ -n "${{ inputs.version }}" ]; then
             if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
               VERSION="${{ inputs.version }}"
@@ -65,7 +68,9 @@ jobs:
             VERSION=""
           fi
 
+          echo "TAGDATE: ${TAGDATE}"
           echo "VERSION: ${VERSION}"
+          echo "TAGDATE=${TAGDATE}" >>$GITHUB_ENV
           echo "VERSION=${VERSION}" >>$GITHUB_ENV
 
           if [ -n "${VERSION}" ]; then
@@ -74,7 +79,7 @@ jobs:
             # Modify Source File
             echo "${VERSION}" >VERSION
             echo "${VERSION}" >files/mnt/p1/RR_VERSION
-            sed 's/^RR_VERSION=.*/RR_VERSION="'${VERSION}'"/' -i files/initrd/opt/rr/include/consts.sh
+            sed -i "s/^RR_VERSION=.*$/RR_VERSION=\"${VERSION}\"/" files/initrd/opt/rr/include/consts.sh
 
             git checkout main
             git pull
@@ -84,9 +89,13 @@ jobs:
               git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
               git push -f
             fi
+          else
+            cd rr
+
+            sed -i "s/^RR_VERSION=.*$/RR_VERSION=\"${TAGDATE}\"/" files/initrd/opt/rr/include/consts.sh
           fi
 
-      # Convert po2mo, Get extractor, LKMs, addons and Modules
+      # Convert po2mo, Get exts
       - name: Convert po2mo, Get extractor, LKMs, addons and Modules
         run: |
 
@@ -104,6 +113,10 @@ jobs:
           getExtractor "files/mnt/p3/extractor"
 
           echo "Repack initrd"
+          
+          [ "${PRE}" = "true" ] && RELEASE="pre" || RELEASE=""
+          sed -i "s/^RR_RELEASE=.*$/RR_RELEASE=\"${RELEASE}\"/" files/initrd/opt/rr/include/consts.sh
+
           convertpo2mo "files/initrd/opt/rr/lang"
           repackInitrd "files/mnt/p3/initrd-rr" "files/initrd"
 
@@ -152,9 +165,9 @@ jobs:
       - name: Pack
         run: |
           cd rr
-
+          TAGDATE="${{ env.TAGDATE }}"
           VERSION="${{ env.VERSION }}"
-          VERSION="${VERSION:-"test"}"
+          VERSION="${VERSION:-"${TAGDATE}"}"
 
           zip -9 "rr_1GB-${VERSION}.img.zip" rr_1GB.img
           zip -9 "rr-${VERSION}.img.zip" rr.img
@@ -205,7 +218,7 @@ jobs:
         if: success() && env.VERSION == ''
         uses: actions/upload-artifact@v4
         with:
-          name: rr-test
+          name: rr-${{ env.TAGDATE }}
           path: |
             rr/rr-*.zip
             rr/update*.zip
