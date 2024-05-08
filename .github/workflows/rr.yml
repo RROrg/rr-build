@@ -220,8 +220,10 @@ jobs:
         with:
           name: rr-${{ env.TAGDATE }}
           path: |
-            rr/rr-*.zip
-            rr/update*.zip
+            rr/rr-*.zip  
+            rr/rr_1GB-*.zip
+            rr/update-*.zip
+            rr/updateall-*.zip
           retention-days: 5
 
       # Upload artifact
@@ -231,7 +233,8 @@ jobs:
         with:
           name: rr-${{ env.VERSION }}
           path: |
-            rr/rr_*.zip
+            rr/rr_1GB-*.zip
+            rr/update-*.zip
           retention-days: 5
 
       # Publish a release if is a tag
@@ -243,7 +246,7 @@ jobs:
           prerelease: ${{ inputs.prerelease }}
           artifacts: |
             rr/rr-*.zip
-            rr/update*.zip
+            rr/updateall-*.zip
           body: |
             - Editing ...
           owner: RROrg
