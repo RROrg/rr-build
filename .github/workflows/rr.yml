@@ -169,10 +169,14 @@ jobs:
           VERSION="${{ env.VERSION }}"
           VERSION="${VERSION:-"${TAGDATE}"}"
 
-          zip -9 "rr_1GB-${VERSION}.img.zip" rr_1GB.img
-          zip -9 "rr-${VERSION}.img.zip" rr.img
-          # zip -9 "rr-${VERSION}.vmdk-dyn.zip" rr-dyn.vmdk
-          # zip -9 "rr-${VERSION}.vmdk-flat.zip" rr.vmdk rr-flat.vmdk
+          sha256sum rr_1GB.img >sha256sum
+          zip -9 "rr_1GB-${VERSION}.img.zip" rr_1GB.img sha256sum
+          sha256sum rr.img >sha256sum
+          zip -9 "rr-${VERSION}.img.zip" rr.img sha256sum
+          # sha256sum rr-dyn.vmdk >sha256sum
+          # zip -9 "rr-${VERSION}.vmdk-dyn.zip" rr-dyn.vmdk sha256sum
+          # sha256sum rr.vmdk rr-flat.vmdk >sha256sum
+          # zip -9 "rr-${VERSION}.vmdk-flat.zip" rr.vmdk rr-flat.vmdk sha256sum
 
           # update.zip
           sha256sum update-list.yml update-check.sh >sha256sum
