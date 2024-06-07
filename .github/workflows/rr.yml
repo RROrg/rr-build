@@ -157,9 +157,8 @@ jobs:
           echo "Create RR_4GB image" # $((1024 * 3 - 512))
           resizeImg "rr_1GB.img" "+2560M" "rr.img"
 
-          # echo "Image Converter"
-          # qemu-img convert -O vmdk rr.img rr-dyn.vmdk
-          # qemu-img convert -O vmdk -o adapter_type=lsilogic rr.img -o subformat=monolithicFlat rr.vmdk
+          echo "Create RR ova"
+          convertova "rr.img" "rr.ova"
 
       # Zip image and generate checksum
       - name: Pack
@@ -173,10 +172,8 @@ jobs:
           zip -9 "rr_1GB-${VERSION}.img.zip" rr_1GB.img sha256sum
           sha256sum rr.img >sha256sum
           zip -9 "rr-${VERSION}.img.zip" rr.img sha256sum
-          # sha256sum rr-dyn.vmdk >sha256sum
-          # zip -9 "rr-${VERSION}.vmdk-dyn.zip" rr-dyn.vmdk sha256sum
-          # sha256sum rr.vmdk rr-flat.vmdk >sha256sum
-          # zip -9 "rr-${VERSION}.vmdk-flat.zip" rr.vmdk rr-flat.vmdk sha256sum
+          sha256sum rr.ova >sha256sum
+          zip -9 "rr-${VERSION}.ova.zip" rr.ova sha256sum
 
           # update.zip
           sha256sum update-list.yml update-check.sh >sha256sum
