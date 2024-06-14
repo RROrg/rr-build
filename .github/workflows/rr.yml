@@ -216,7 +216,6 @@ jobs:
 
       # Upload artifact
       - name: Upload to Artifacts
-        if: success() && env.VERSION == ''
         uses: actions/upload-artifact@v4
         with:
           name: rr-${{ env.TAGDATE }}
@@ -225,17 +224,6 @@ jobs:
             rr/rr_1GB-*.zip
             rr/update-*.zip
             rr/updateall-*.zip
-          retention-days: 5
-
-      # Upload artifact
-      - name: Upload to Artifacts
-        if: success() && env.VERSION != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: rr-${{ env.VERSION }}
-          path: |
-            rr/rr_1GB-*.zip
-            rr/update-*.zip
           retention-days: 5
 
       # Publish a release if is a tag
