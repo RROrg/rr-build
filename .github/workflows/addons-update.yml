@@ -54,6 +54,7 @@ jobs:
           MAKE_ARCH="x64-7.1" # [x64-7.1, aarch64-7.1]
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-misc ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-eudev ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
+          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-acpid ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-sensors ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-console ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
 
@@ -66,19 +67,25 @@ jobs:
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-eudev_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
             tar -xf ${ROOT_PATH}/spksrc/packages/rr-eudev_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
-            cp -f ${ROOT_PATH}/spk/package.tgz rr-addons/eudev/all/addons/eudev-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
+            cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/eudev/all/addons/eudev-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
+            rm -rf ${ROOT_PATH}/spk
+          fi
+          if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-acpid_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
+            mkdir -p ${ROOT_PATH}/spk
+            tar -xf ${ROOT_PATH}/spksrc/packages/rr-acpid_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
+            cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/acpid/all/addons/acpid-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-sensors_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
             tar -xf ${ROOT_PATH}/spksrc/packages/rr-sensors_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
-            cp -f ${ROOT_PATH}/spk/package.tgz rr-addons/sensors/all/addons/sensors-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
+            cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/sensors/all/addons/sensors-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-console_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
             tar -xf ${ROOT_PATH}/spksrc/packages/rr-console_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
-            cp -f ${ROOT_PATH}/spk/package.tgz rr-addons/console/all/addons/console-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
+            cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/console/all/addons/console-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
 
