@@ -98,23 +98,20 @@ jobs:
       # Convert po2mo, Get exts
       - name: Convert po2mo, Get extractor, LKMs, addons and Modules
         run: |
-
-          PRE="${{ inputs.prerelease }}"
-
           cd rr
           . scripts/func.sh "${{ secrets.RRORG }}"
 
           echo "Get extractor"
-          getCKs "files/mnt/p3/cks" "${PRE}"
-          getLKMs "files/mnt/p3/lkms" "${PRE}"
-          getAddons "files/mnt/p3/addons" "${PRE}"
-          getModules "files/mnt/p3/modules" "${PRE}"
-          getBuildroot "files/mnt/p3" "${PRE}"
+          getCKs "files/mnt/p3/cks" "true"
+          getLKMs "files/mnt/p3/lkms" "true"
+          getAddons "files/mnt/p3/addons" "true"
+          getModules "files/mnt/p3/modules" "true"
+          getBuildroot "files/mnt/p3" "true"
           getExtractor "files/mnt/p3/extractor"
 
           echo "Repack initrd"
           
-          [ "${PRE}" = "true" ] && RELEASE="pre" || RELEASE=""
+          [ "${{ inputs.prerelease }}" = "true" ] && RELEASE="pre" || RELEASE=""
           sed -i "s/^RR_RELEASE=.*$/RR_RELEASE=\"${RELEASE}\"/" files/initrd/opt/rr/include/consts.sh
 
           convertpo2mo "files/initrd/opt/rr/lang"
