@@ -22,7 +22,10 @@ on:
         description: "buildroot version"
         default: "2024.02.x"
         type: string
-
+      kerver:
+        description: "kernel version"
+        default: ""
+        type: string
 jobs:
   buildroot:
     runs-on: ubuntu-latest
@@ -80,7 +83,7 @@ jobs:
         run: |
           cd buildroot
           chmod +x ./build_rr.sh
-          . ./build_rr.sh "${{ inputs.br2ver}}"
+          . ./build_rr.sh "${{ inputs.br2ver }}" "${{ inputs.kerver }}"
 
           [ -n "${BUILDROOT_VERSION}" ] && echo "BUILDROOT_VERSION=${BUILDROOT_VERSION}" >> $GITHUB_ENV || exit 1
           [ -n "${KERNEL_VERSION}" ] && echo "KERNEL_VERSION=${KERNEL_VERSION}" >> $GITHUB_ENV || exit 1
