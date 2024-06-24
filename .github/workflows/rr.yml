@@ -215,11 +215,40 @@ jobs:
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: rr-${{ env.TAGDATE }}
+          name: rr.img
           path: |
-            rr/rr-*.zip  
+            rr/rr-*.img.zip
+          retention-days: 5
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rr.ova
+          path: |
+            rr/rr-*.ova.zip
+          retention-days: 5
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rr_1GB.img
+          path: |
             rr/rr_1GB-*.zip
+          retention-days: 5
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: update
+          path: |
             rr/update-*.zip
+          retention-days: 5
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: updateall
+          path: |
             rr/updateall-*.zip
           retention-days: 5
 
