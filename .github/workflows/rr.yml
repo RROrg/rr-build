@@ -211,6 +211,12 @@ jobs:
           done < <(yq '.replace | explode(.) | to_entries | map([.key])[] | .[]' update-list.yml)
           zip -9j "updateall-${VERSION}.zip" sha256sum
 
+          # sha256sum
+          sha256sum "rr-${VERSION}.img.zip"     >sha256sum
+          sha256sum "rr-${VERSION}.ova.zip"    >>sha256sum
+          sha256sum "update-${VERSION}.zip"    >>sha256sum
+          sha256sum "updateall-${VERSION}.zip" >>sha256sum
+
       # Upload artifact
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
@@ -262,6 +268,7 @@ jobs:
           artifacts: |
             rr/rr-*.zip
             rr/updateall-*.zip
+            rr/sha256sum
           body: |
             - Editing ...
           owner: RROrg
