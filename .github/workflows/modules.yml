@@ -170,7 +170,7 @@ jobs:
           echo "copy official modules"
           IU="apollolake braswell broadwell broadwellnk broadwellnkv2 broadwellntbap bromolow denverton geminilake grantley purley"
           AU="epyc7002 r1000 v1000"
-          OM=(cpufreq_performance.ko i915.ko processor.ko vfio.ko exfat.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko etxhci-hcd.ko)
+          OM=(i915.ko processor.ko vfio.ko exfat.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko etxhci-hcd.ko)
           echo "epyc7002" | grep -qw "${PLATFORM}" || OM+=(mlx_compat.ko mlx4_core.ko mlx4_en.ko mlx4_ib.ko mlx5_core.ko mlx5_ib.ko ib_core.ko qedr.ko)
           echo "${IU}" | grep -qw "${PLATFORM}" && OM+=(irqbypass.ko kvm.ko kvm-intel.ko) || OM+=(irqbypass.ko kvm.ko kvm-amd.ko)
           for M in ${OM[@]}; do
