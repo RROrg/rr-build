@@ -26,8 +26,16 @@ jobs:
         include:
           #- version: 7.1
           #  platform: epyc7002
+          #  config: ""
+          #- version: 7.1
+          #  platform: epyc7002
+          #  config: "drm"
           - version: 7.2
             platform: epyc7002
+            config: ""
+          - version: 7.2
+            platform: epyc7002
+            config: "drm"
 
     runs-on: ubuntu-latest
     steps:
@@ -62,6 +70,7 @@ jobs:
           ROOT_PATH=${{ github.workspace }}
           VERSION=${{ matrix.version }}
           PLATFORM=${{ matrix.platform }}
+          CONFIG=${{ matrix.config }}
 
           if [ "${VERSION}" = "7.2" ]; then
             git clone --depth=1 https://github.com/RROrg/linux_dsm_epyc7002.git
@@ -74,15 +83,27 @@ jobs:
           . rp-modules/compile-ck.sh
           echo "----------------- Env  -----------------"
           makeEnvDeploy ${ROOT_PATH} ${VERSION} ${PLATFORM}
+
           echo "-------------- Make Kernel -------------"
+          if [ -n "${CONFIG}" ]; then
+            if [ -f linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}_${CONFIG} ]; then
+              cp -f linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}_${CONFIG} linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}
+            else
+              echo "Config ${PLATFORM}_${CONFIG} does not exist."
+              exit 1
+            fi
+          fi
           makekernel ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 output
+
           echo "-------------- Make modules ------------"
           makemodules ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 rp-modules/src/5.10.55-ck modules
-          echo "--------------- Make i915 --------------"
-          makei915 ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 intel-gpu-i915-backports i915
-
           cp -rf modules/* output
-          cp -rf i915/* output
+
+          if [ ! "${CONFIG}" = "drm" ]; then
+            echo "--------------- Make i915 --------------"
+            makei915 ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 intel-gpu-i915-backports i915
+            cp -rf i915/* output
+          fi
 
       - name: Tar to Artifacts
         run: |
@@ -140,14 +161,20 @@ jobs:
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: rr-cks-${{ matrix.version }}-${{ matrix.platform }}
+          name: rr-cks${{ matrix.config }}-${{ matrix.version }}-${{ matrix.platform }}
           path: |
             *.tgz
             *.gz
 
   firmware:
-    runs-on: ubuntu-latest
     needs: build
+    strategy:
+      matrix:
+        include:
+          - config: ""
+          - config: "drm"
+
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@main
@@ -169,7 +196,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: output
-          pattern: rr-cks-*
+          pattern: rr-cks${{ matrix.config }}-*
           merge-multiple: true
 
       - name: firmware
@@ -204,7 +231,7 @@ jobs:
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: rr-cks-firmware
+          name: rr-cks${{ matrix.config }}-firmware
           path: |
             firmware.tgz
 
@@ -270,8 +297,38 @@ jobs:
         with:
           name: rr-cks
           path: |
-            rr-cks*.zip
+            rr-cks-*.zip
           retention-days: 5
+
+      - name: download to artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: outputdrm
+          pattern: rr-cksdrm-*
+          merge-multiple: true
+
+      - name: delete-artifact
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            rr-cksdrm-*
+
+      - name: Zip modules
+        run: |
+          VERSION="${{ env.VERSION }}"
+          VERSION="${VERSION:-"test"}"
+
+          echo "${VERSION}" > "outputdrm/VERSION"
+          zip -9 rr-cksdrm-${VERSION}.zip -j outputdrm/*
+
+      #- name: Upload to Artifacts
+      #  if: success() && env.VERSION == ''
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: rr-cksdrm
+      #    path: |
+      #      rr-cksdrm-*.zip
+      #    retention-days: 5
 
       - name: Release
         if: success() && env.VERSION != ''
