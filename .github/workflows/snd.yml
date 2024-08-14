@@ -1,0 +1,311 @@
+#
+# Copyright (C) 2022 Ing <https://github.com/wjz304>
+#
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
+
+name: Build snd main
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "format %y.%-m.$i or auto"
+        required: false
+        type: string
+      prerelease:
+        description: "pre release"
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - version: 6.2
+            platform: apollolake
+          - version: 6.2
+            platform: braswell
+          - version: 6.2
+            platform: broadwell
+          - version: 6.2
+            platform: broadwellnk
+          - version: 6.2
+            platform: broadwellntbap
+          - version: 6.2
+            platform: bromolow
+          - version: 6.2
+            platform: denverton
+          # checkout 6.2.4
+          - version: 6.2
+            platform: geminilake
+          # checkout 6.2.4
+          - version: 6.2
+            platform: grantley
+          ## checkout 6.2.4
+          ## - version: 6.2
+          ##   platform: kvmx64
+          # checkout 6.2.4
+          - version: 6.2
+            platform: purley
+          # checkout 6.2.4
+          - version: 6.2
+            platform: v1000
+
+          - version: 7.1
+            platform: apollolake
+          # - version: 7.1
+          #   platform: braswell
+          - version: 7.1
+            platform: broadwell
+          - version: 7.1
+            platform: broadwellnk
+          - version: 7.1
+            platform: broadwellnkv2
+          - version: 7.1
+            platform: broadwellntbap
+          # - version: 7.1
+          #   platform: bromolow
+          - version: 7.1
+            platform: denverton
+          - version: 7.1
+            platform: epyc7002
+          - version: 7.1
+            platform: geminilake
+          # - version: 7.1
+          #   platform: grantley
+          ## - version: 7.1
+          ##   platform: kvmx64
+          - version: 7.1
+            platform: purley
+          - version: 7.1
+            platform: r1000
+          - version: 7.1
+            platform: v1000
+
+          - version: 7.2
+            platform: apollolake
+          # - version: 7.2
+          #   platform: braswell
+          - version: 7.2
+            platform: broadwell
+          - version: 7.2
+            platform: broadwellnk
+          - version: 7.2
+            platform: broadwellnkv2
+          - version: 7.2
+            platform: broadwellntbap
+          # - version: 7.2
+          #   platform: bromolow
+          - version: 7.2
+            platform: denverton
+          - version: 7.2
+            platform: epyc7002
+          - version: 7.2
+            platform: geminilake
+          # - version: 7.2
+          #   platform: grantley
+          ## - version: 7.2
+          ##   platform: kvmx64
+          - version: 7.2
+            platform: purley
+          - version: 7.2
+            platform: r1000
+          - version: 7.2
+            platform: v1000
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rp-modules
+          token: ${{ secrets.RRORG }}
+          path: rp-modules
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/syno-snd
+          token: ${{ secrets.RRORG }}
+          path: syno-snd
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: Make modules
+        run: |
+          ROOT_PATH=${{ github.workspace }}
+          VERSION=${{ matrix.version }}
+          PLATFORM=${{ matrix.platform }}
+
+          . ${ROOT_PATH}/rp-modules/compile.sh
+
+          echo "makeEnvDeploy"
+          makeEnvDeploy "${ROOT_PATH}" "${VERSION}" "${PLATFORM}"
+
+          echo "makemodules"
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
+          # cp -f "${ROOT_PATH}/syno-snd/src/${KVER}/defines.${PLATFORM}" "${ROOT_PATH}/syno-snd/src/${KVER}/defines"
+          makemodules "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/syno-snd/src/${KVER}" "${ROOT_PATH}/output"
+
+      - name: Tar to Artifacts
+        run: |
+          ROOT_PATH=${{ github.workspace }}
+          VERSION=${{ matrix.version }}
+          PLATFORM=${{ matrix.platform }}
+
+          . ${ROOT_PATH}/rp-modules/compile.sh
+
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
+
+          if [ "${PLATFORM}" = "epyc7002" ]; then
+            tar -zcf ${ROOT_PATH}/${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
+          else
+            tar -zcf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output .
+          fi          
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: modules-${{ matrix.version }}-${{ matrix.platform }}
+          path: |
+            *.tgz
+
+  firmware:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: download to artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: output
+          pattern: modules-*
+          merge-multiple: true
+
+      - name: firmware
+        run: |
+          ROOT_PATH=${{ github.workspace }}
+
+          mkdir -p ${ROOT_PATH}/firmware
+
+          echo "extract all modules"
+          for F in output/*.tgz; do
+            echo "${F}"
+            mkdir -p "${F%.tgz}"
+            tar -zxf "${F}" -C "${F%.tgz}" || echo "Failed to extract ${F}"
+          done
+
+          echo "get firmware"
+          SOURCE=/tmp/linux-firmware
+          git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
+          while read L; do
+            if [ -e "${SOURCE}/${L}" ]; then
+              mkdir -p "$(dirname firmware/${L})"
+              cp "${SOURCE}/${L}" "firmware/${L}"
+            else
+              [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
+            fi
+          done < <(find output -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
+          
+          tar -zcf firmware.tgz -C firmware .
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: modules-firmware
+          path: |
+            firmware.tgz
+
+  release:
+    runs-on: ubuntu-latest
+    needs: firmware
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: Calculate version
+        run: |
+          # Calculate version
+          VERSION=""
+          if [ -n "${{ inputs.version }}" ]; then
+            if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
+              VERSION="${{ inputs.version }}"
+            else
+              LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.RRORG }}" "https://api.github.com/repos/RROrg/syno-snd/releases" | jq -r ".[0].tag_name" 2>/dev/null)"
+              if [ -n "${LATEST_TAG}" -a "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
+                VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
+              else
+                VERSION="$(date +'%y.%-m').0"
+              fi
+            fi
+          else
+            VERSION=""
+          fi
+
+          echo "VERSION: ${VERSION}"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: download to artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: output
+          pattern: modules-*
+          merge-multiple: true
+
+      - name: delete-artifact
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            modules-*
+
+      - name: Zip modules
+        run: |
+          VERSION="${{ env.VERSION }}"
+          VERSION="${VERSION:-"test"}"
+
+          echo "${VERSION}" > "output/VERSION"
+          zip -9 modules-${VERSION}.zip -j output/*
+
+      - name: Upload to Artifacts
+        if: success() && env.VERSION == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: modules
+          path: |
+            modules*.zip
+          retention-days: 5
+
+      - name: Release
+        if: success() && env.VERSION != ''
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.VERSION }}
+          prerelease: ${{ inputs.prerelease }}
+          artifacts: modules*.zip
+          owner: RROrg
+          repo: syno-snd
+          token: ${{ secrets.RRORG }}
