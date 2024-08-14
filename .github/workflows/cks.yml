@@ -80,41 +80,43 @@ jobs:
             exit 1
           fi
 
-          . rp-modules/compile-ck.sh
-          echo "----------------- Env  -----------------"
-          makeEnvDeploy ${ROOT_PATH} ${VERSION} ${PLATFORM}
+          . ${ROOT_PATH}/rp-modules/compile-ck.sh
 
-          echo "-------------- Make Kernel -------------"
+          echo "makeEnvDeploy"
+          makeEnvDeploy "${ROOT_PATH}" "${VERSION}" "${PLATFORM}"
+
+          echo "makekernel"
           if [ -n "${CONFIG}" ]; then
-            if [ -f linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}_${CONFIG} ]; then
-              cp -f linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}_${CONFIG} linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}
+            if [ -f "${ROOT_PATH}/linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}_${CONFIG}" ]; then
+              cp -f "${ROOT_PATH}/linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}_${CONFIG}" "${ROOT_PATH}/linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}"
             else
               echo "Config ${PLATFORM}_${CONFIG} does not exist."
               exit 1
             fi
           fi
-          makekernel ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 output
+          makekernel "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/linux_dsm_epyc7002" "${ROOT_PATH}/output"
 
-          echo "-------------- Make modules ------------"
-          makemodules ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 rp-modules/src/5.10.55-ck modules
-          cp -rf modules/* output
+          echo "makemodules"
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/linux_dsm_epyc7002")"
+          cp -f "${ROOT_PATH}/rp-modules/src/${KVER}-ck/defines.${PLATFORM}" "${ROOT_PATH}/rp-modules/src/${KVER}-ck/defines"
+          makemodules "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/linux_dsm_epyc7002" "${ROOT_PATH}/rp-modules/src/${KVER}-ck" "${ROOT_PATH}/modules"
+          cp -rf "${ROOT_PATH}/modules/"* "${ROOT_PATH}/output"
 
           if [ ! "${CONFIG}" = "drm" ]; then
-            echo "--------------- Make i915 --------------"
-            makei915 ${ROOT_PATH} ${VERSION} ${PLATFORM} linux_dsm_epyc7002 intel-gpu-i915-backports i915
-            cp -rf i915/* output
+            echo "makei915"
+            makei915 "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/linux_dsm_epyc7002" "${ROOT_PATH}/intel-gpu-i915-backports" "${ROOT_PATH}/i915"
+            cp -rf "${ROOT_PATH}/i915/"* "${ROOT_PATH}/output"
           fi
 
       - name: Tar to Artifacts
         run: |
-          . rp-modules/compile-ck.sh
-
           ROOT_PATH=${{ github.workspace }}
           VERSION=${{ matrix.version }}
           PLATFORM=${{ matrix.platform }}
-          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "linux_dsm_epyc7002")"
-          [ -z "${KVER}" ] && exit 1
 
+          . ${ROOT_PATH}/rp-modules/compile-ck.sh
+
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "linux_dsm_epyc7002")"
           if [ "${PLATFORM}" = "epyc7002" ]; then
             PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
           else
@@ -201,11 +203,13 @@ jobs:
 
       - name: firmware
         run: |
-          mkdir -p firmware
+          ROOT_PATH=${{ github.workspace }}
+
+          mkdir -p ${ROOT_PATH}/firmware
 
           echo "copy 3rd modules"
-          PARTY3RD_PATH="${{ github.workspace }}/rr-cks/thirdparty/firmware"
-          cp -rf ${PARTY3RD_PATH}/* firmware/
+          PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/firmware"
+          cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/firmware/
 
           echo "extract all modules"
           for F in output/*.tgz; do 

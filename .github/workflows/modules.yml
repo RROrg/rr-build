@@ -44,9 +44,9 @@ jobs:
           # # checkout 6.2.4
           # - version: 6.2
           #   platform: grantley
-          # # checkout 6.2.4
-          ## - version: 6.2
-          ##   platform: kvmx64
+          # ## checkout 6.2.4
+          # ## - version: 6.2
+          # ##   platform: kvmx64
           # # checkout 6.2.4
           # - version: 6.2
           #   platform: purley
@@ -143,22 +143,29 @@ jobs:
 
       - name: Make modules
         run: |
-          . rp-modules/compile.sh
-          echo "----------------- Env  -----------------"
-          makeEnvDeploy ${{ github.workspace }} ${{ matrix.version }} ${{ matrix.platform }}
-          echo "----------------- Make -----------------"
-          makemodules ${{ github.workspace }} ${{ matrix.version }} ${{ matrix.platform }} rp-modules/src output
-
-      - name: Tar to Artifacts
-        run: |
-          . rp-modules/compile.sh
-
           ROOT_PATH=${{ github.workspace }}
           VERSION=${{ matrix.version }}
           PLATFORM=${{ matrix.platform }}
-          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
-          [ -z "${KVER}" ] && exit 1
 
+          . ${ROOT_PATH}/rp-modules/compile.sh
+
+          echo "makeEnvDeploy"
+          makeEnvDeploy "${ROOT_PATH}" "${VERSION}" "${PLATFORM}"
+
+          echo "makemodules"
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
+          cp -f "${ROOT_PATH}/rp-modules/src/${KVER}/defines.${PLATFORM}" "${ROOT_PATH}/rp-modules/src/${KVER}/defines"
+          makemodules "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/rp-modules/src/${KVER}" "${ROOT_PATH}/output"
+
+      - name: Tar to Artifacts
+        run: |
+          ROOT_PATH=${{ github.workspace }}
+          VERSION=${{ matrix.version }}
+          PLATFORM=${{ matrix.platform }}
+
+          . ${ROOT_PATH}/rp-modules/compile.sh
+
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
           if [ "${PLATFORM}" = "epyc7002" ]; then
             OFFICIAL_PATH="${ROOT_PATH}/rp-modules/official/hda1/${PLATFORM}-${VERSION}-${KVER}"
             PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
@@ -257,11 +264,13 @@ jobs:
 
       - name: firmware
         run: |
-          mkdir -p firmware
+          ROOT_PATH=${{ github.workspace }}
+
+          mkdir -p ${ROOT_PATH}/firmware
 
           echo "copy 3rd modules"
-          PARTY3RD_PATH="${{ github.workspace }}/rr-modules/thirdparty/firmware"
-          cp -rf ${PARTY3RD_PATH}/* firmware/
+          PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/firmware"
+          cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/firmware/
 
           echo "extract all modules"
           for F in output/*.tgz; do

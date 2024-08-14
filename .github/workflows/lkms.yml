@@ -44,9 +44,9 @@ jobs:
           # # checkout 6.2.4
           # - version: 6.2
           #   platform: grantley
-          # # checkout 6.2.4
-          ## - version: 6.2
-          ##   platform: kvmx64
+          # ## checkout 6.2.4
+          # ## - version: 6.2
+          # ##   platform: kvmx64
           # # checkout 6.2.4
           # - version: 6.2
           #   platform: purley
@@ -136,11 +136,17 @@ jobs:
 
       - name: Make lkms
         run: |
-          . rr-lkms/compile.sh
-          echo "----------------- Env  -----------------"
-          makeEnvDeploy ${{ github.workspace }} ${{ matrix.version }} ${{ matrix.platform }}
-          echo "----------------- Make -----------------"
-          makelkms ${{ github.workspace }} ${{ matrix.version }} ${{ matrix.platform }} rr-lkms output
+          ROOT_PATH=${{ github.workspace }}
+          VERSION=${{ matrix.version }}
+          PLATFORM=${{ matrix.platform }}
+
+          . ${ROOT_PATH}/rr-lkms/compile.sh
+
+          echo "makeEnvDeploy"
+          makeEnvDeploy "${ROOT_PATH}" "${VERSION}" "${PLATFORM}"
+
+          echo "makemodules"
+          makelkms "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/rr-lkms" "${ROOT_PATH}/output"
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
