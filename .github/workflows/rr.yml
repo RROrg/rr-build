@@ -270,7 +270,8 @@ jobs:
             rr/updateall-*.zip
             rr/sha256sum
           body: |
-            - Editing ...
+            - Please do not upgrade this version now (In release testing...),
+            - Please upgrade after updating the Changelog ...
           owner: RROrg
           repo: rr
           token: ${{ secrets.RRORG }}
