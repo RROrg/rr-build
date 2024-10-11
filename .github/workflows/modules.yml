@@ -270,7 +270,7 @@ jobs:
 
           echo "copy 3rd modules"
           PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/firmware"
-          cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/firmware/
+          cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/firmware/ || true
 
           echo "extract all modules"
           for F in output/*.tgz; do
@@ -285,7 +285,7 @@ jobs:
           while read L; do
             if [ -e "${SOURCE}/${L}" ]; then
               mkdir -p "$(dirname firmware/${L})"
-              cp "${SOURCE}/${L}" "firmware/${L}"
+              cp -f "${SOURCE}/${L}" "firmware/${L}"
             else
               [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
             fi
