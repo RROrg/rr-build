@@ -31,7 +31,7 @@ jobs:
       - name: Get official modules
         run: |
           cd rp-modules
-          . ./getOfficial.sh
+          . ./getOfficial.sh "x86_64"
 
       - name: Check and Push
         run: |
