@@ -43,7 +43,7 @@ jobs:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
-          swap-storage: false
+          tool-cache: true
 
       - name: Initialization environment
         run: |
