@@ -91,7 +91,7 @@ jobs:
       - name: Zip modules
         run: |
           cp -f buildroot/.rr-buildroot/output/images/bzImage bzImage-rr || exit 1
-          cp -f buildroot/.rr-buildroot/output/images/rootfs.cpio.xz initrd-rr || exit 1
+          cp -f buildroot/.rr-buildroot/output/images/rootfs.cpio.zst initrd-rr || exit 1
 
           VERSION="${{ env.VERSION }}"
           VERSION="${VERSION:-"test"}"
