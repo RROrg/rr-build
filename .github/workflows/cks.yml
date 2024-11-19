@@ -137,8 +137,8 @@ jobs:
                 fi
               fi
               D=""
-              [ -z "${D}" -a -f "${ROOT_PATH}/output/modules/${1}" ] && D="${ROOT_PATH}/output/modules/${1}"
-              [ -z "${D}" -a -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && D="${OFFICIAL_PATH/hda1/rd}/${1}"
+              [ -z "${D}" ] && [ -f "${ROOT_PATH}/output/modules/${1}" ] && D="${ROOT_PATH}/output/modules/${1}"
+              [ -z "${D}" ] && [ -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && D="${OFFICIAL_PATH/hda1/rd}/${1}"
               if [ -n "${D}" ]; then
                 # modinfo "${D}" || true
                 depends=($(modinfo "${D}" 2>/dev/null | grep depends: | awk -F: '{print $2}' | awk '$1=$1' | sed 's/,/ /g')) || true
@@ -228,7 +228,7 @@ jobs:
             else
               [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
             fi
-          done < <(find output -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
+          done <<<$(find output -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
 
           tar -zcf firmware.tgz -C firmware .
 
@@ -261,7 +261,7 @@ jobs:
               VERSION="${{ inputs.version }}"
             else
               LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.RRORG }}" "https://api.github.com/repos/RROrg/rr-cks/releases" | jq -r ".[0].tag_name" 2>/dev/null)"
-              if [ -n "${LATEST_TAG}" -a "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
+              if [ -n "${LATEST_TAG}" ] && [ "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
                 VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
               else
                 VERSION="$(date +'%y.%-m').0"
