@@ -20,7 +20,7 @@ on:
         type: boolean
       br2ver:
         description: "buildroot version"
-        default: "2024.02.2"
+        default: "2024.02.x"
         type: string
       kerver:
         description: "kernel version"
