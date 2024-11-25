@@ -52,6 +52,7 @@ jobs:
         run: |
           ROOT_PATH="${{ github.workspace }}"
           MAKE_ARCH="x64-7.1" # [x64-7.1, aarch64-7.1]
+          # build packages
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-misc ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-eudev ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-acpid ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
@@ -87,6 +88,17 @@ jobs:
             tar -xf ${ROOT_PATH}/spksrc/packages/rr-console_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
             cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/console/all/addons/console-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
+          fi
+          
+          # build cross
+          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/cross/powersched ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
+          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/cross/synoscgiproxy ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
+
+          if [ -f "${ROOT_PATH}/spksrc/cross/powersched/work-${MAKE_ARCH}/install/usr/local/powersched/sbin/powersched" ]; then
+            cp -vpf "${ROOT_PATH}/spksrc/cross/powersched/work-${MAKE_ARCH}/install/usr/local/powersched/sbin/powersched" rr-addons/powersched/all/usr/sbin
+          fi
+          if [ -f "${ROOT_PATH}/spksrc/cross/synoscgiproxy/work-${MAKE_ARCH}/install/usr/local/synoscgiproxy/sbin/synoscgiproxy" ]; then
+            cp -vpf "${ROOT_PATH}/spksrc/cross/synoscgiproxy/work-${MAKE_ARCH}/install/usr/local/synoscgiproxy/sbin/synoscgiproxy" rr-addons/cpuinfo/all/usr/sbin
           fi
 
       - name: Upload to Artifacts
