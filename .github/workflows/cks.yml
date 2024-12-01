@@ -58,7 +58,7 @@ jobs:
 
       - name: Init Env
         run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com" 
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           sudo timedatectl set-timezone "Asia/Shanghai"
 
@@ -212,12 +212,12 @@ jobs:
           cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/firmware/
 
           echo "extract all modules"
-          for F in output/*.tgz; do 
+          for F in output/*.tgz; do
             echo "${F}"
             mkdir -p "${F%.tgz}"
             tar -zxf "${F}" -C "${F%.tgz}" || echo "Failed to extract ${F}"
           done
-          
+
           echo "get firmware"
           SOURCE=/tmp/linux-firmware
           git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}

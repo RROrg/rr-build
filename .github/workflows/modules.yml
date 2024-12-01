@@ -226,7 +226,7 @@ jobs:
             tar -zcf ${ROOT_PATH}/${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
           else
             tar -zcf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output .
-          fi          
+          fi
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
@@ -290,7 +290,7 @@ jobs:
               [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
             fi
           done <<<$(find output -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
-          
+
           tar -zcf firmware.tgz -C firmware .
 
       - name: Upload to Artifacts

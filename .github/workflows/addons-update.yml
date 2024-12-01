@@ -89,7 +89,7 @@ jobs:
             cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/console/all/addons/console-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
-          
+
           # build cross
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/cross/powersched ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/cross/synoscgiproxy ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"

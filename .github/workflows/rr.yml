@@ -43,7 +43,7 @@ jobs:
           sudo timedatectl set-timezone "Asia/Shanghai"
 
           sudo apt update
-          sudo apt install -y locales busybox dialog gettext sed gawk jq curl 
+          sudo apt install -y locales busybox dialog gettext sed gawk jq curl
           sudo apt install -y python-is-python3 python3-pip libelf-dev qemu-utils cpio xz-utils lz4 lzma bzip2 gzip zstd
           # sudo snap install yq
           if ! command -v yq &>/dev/null || ! yq --version 2>/dev/null | grep -q "v4."; then
@@ -112,7 +112,7 @@ jobs:
           getExtractor "files/mnt/p3/extractor"
 
           echo "Repack initrd"
-          
+
           [ "${{ inputs.prerelease }}" = "true" ] && RELEASE="pre" || RELEASE=""
           sed -i "s/^RR_RELEASE=.*$/RR_RELEASE=\"${RELEASE}\"/" files/initrd/opt/rr/include/consts.sh
 
@@ -137,7 +137,7 @@ jobs:
 
           for i in {1..3}; do
             [ ! -d "files/mnt/p${i}" ] && continue
-            
+
             rm -rf "/tmp/mnt/p${i}"
             mkdir -p "/tmp/mnt/p${i}"
 
@@ -168,6 +168,10 @@ jobs:
           echo "Create RR ova"
           convertova "rr.img" "rr.ova"
 
+          echo "Create RR vhd"
+          createvmc "rr.vmc"
+          qemu-img convert rr.img -O vpc rr.vhd
+
       # Zip image and generate checksum
       - name: Pack
         run: |
@@ -178,10 +182,16 @@ jobs:
 
           sha256sum rr_1GB.img >sha256sum
           zip -9 "rr_1GB-${VERSION}.img.zip" rr_1GB.img sha256sum
+
           sha256sum rr.img >sha256sum
           zip -9 "rr-${VERSION}.img.zip" rr.img sha256sum
+
           sha256sum rr.ova >sha256sum
           zip -9 "rr-${VERSION}.ova.zip" rr.ova sha256sum
+
+          sha256sum rr.vhd  >sha256sum
+          sha256sum rr.vmc >>sha256sum
+          zip -9 "rr-${VERSION}.vhd.zip" rr.vhd rr.vmc sha256sum
 
           # update.zip
           sha256sum update-list.yml update-check.sh >sha256sum
@@ -225,6 +235,7 @@ jobs:
           # sha256sum
           sha256sum "rr-${VERSION}.img.zip"     >sha256sum
           sha256sum "rr-${VERSION}.ova.zip"    >>sha256sum
+          sha256sum "rr-${VERSION}.vhd.zip"    >>sha256sum
           sha256sum "update-${VERSION}.zip"    >>sha256sum
           sha256sum "updateall-${VERSION}.zip" >>sha256sum
 
@@ -248,6 +259,22 @@ jobs:
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
         with:
+          name: rr.vhd
+          path: |
+            rr/rr-*.vhd.zip
+          retention-days: 5
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: updateall
+          path: |
+            rr/updateall-*.zip
+          retention-days: 5
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
           name: rr_1GB.img
           path: |
             rr/rr_1GB-*.zip
@@ -259,14 +286,6 @@ jobs:
           name: update
           path: |
             rr/update-*.zip
-          retention-days: 5
-
-      - name: Upload to Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: updateall
-          path: |
-            rr/updateall-*.zip
           retention-days: 5
 
       # Publish a release if is a tag
