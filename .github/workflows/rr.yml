@@ -169,8 +169,8 @@ jobs:
           convertova "rr.img" "rr.ova"
 
           echo "Create RR vhd"
-          createvmc "rr.vmc"
           qemu-img convert rr.img -O vpc rr.vhd
+          createvmc "rr.vhd" "rr.vmc"
 
       # Zip image and generate checksum
       - name: Pack
