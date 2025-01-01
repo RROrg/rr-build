@@ -182,7 +182,7 @@ jobs:
           echo "${IU}" | grep -qw "${PLATFORM}" && OM+=(irqbypass.ko kvm.ko kvm-intel.ko) || OM+=(irqbypass.ko kvm.ko kvm-amd.ko)
           for M in ${OM[@]}; do
             function _copydepends() {
-              [ -f "${OFFICIAL_PATH}/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && sudo cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output"
+              [ -f "${OFFICIAL_PATH}/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output"
               depends=($(modinfo "${OFFICIAL_PATH}/${1}" | grep depends: | awk -F: '{print $2}' | awk '$1=$1' | sed 's/,/ /g'))
               if [ ${#depends[*]} -gt 0 ]; then
                 for k in ${depends[@]}; do
@@ -194,14 +194,14 @@ jobs:
           done
 
           echo "copy 3rd modules"
-          [ -d "${PARTY3RD_PATH}" ] && sudo cp -rf "${PARTY3RD_PATH}/." "${ROOT_PATH}/output"
+          [ -d "${PARTY3RD_PATH}" ] && cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/output/
 
           echo "check depends"
           for M in $(ls ${ROOT_PATH}/output 2>/dev/null); do
             function _copydepends() {
               if [ ! -f "${ROOT_PATH}/output/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ]; then
                 if [ -f "${OFFICIAL_PATH}/${1}" ]; then
-                  sudo cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output"
+                  cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output"
                 else
                   echo "[E] '${PLATFORM}-${KVER}' - '${M}' depends '${1}' does not exist."
                 fi
@@ -270,7 +270,7 @@ jobs:
 
           echo "copy 3rd modules"
           PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/firmware"
-          cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/firmware/ || true
+          [ -d "${PARTY3RD_PATH}" ] && cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/firmware/
 
           echo "extract all modules"
           for F in output/*.tgz; do
@@ -283,13 +283,14 @@ jobs:
           SOURCE=/tmp/linux-firmware
           git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
           while read L; do
+            [ -z "${L}" ] && continue
             if [ -e "${SOURCE}/${L}" ]; then
               mkdir -p "$(dirname firmware/${L})"
               cp -f "${SOURCE}/${L}" "firmware/${L}"
             else
               [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
             fi
-          done <<<$(find output -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
+          done <<<$(find output -name \*.ko -exec sh -c 'modinfo {} | grep ^firmware' \; | awk '{print $2}')
 
           tar -zcf firmware.tgz -C firmware .
 

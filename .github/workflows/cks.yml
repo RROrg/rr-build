@@ -124,14 +124,14 @@ jobs:
           fi
 
           echo "copy 3rd modules"
-          [ -d "${PARTY3RD_PATH}" ] && sudo cp -rf "${PARTY3RD_PATH}/." "${ROOT_PATH}/output/modules"
+          [ -d "${PARTY3RD_PATH}" ] && cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/output/modules/
 
           echo "check depends"
           for M in $(ls ${ROOT_PATH}/output/modules 2>/dev/null); do
             function _copydepends() {
               if [ ! -f "${ROOT_PATH}/output/modules/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ]; then
                 if [ -f "${OFFICIAL_PATH}/${1}" ]; then
-                  sudo cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output/modules"
+                  cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output/modules"
                 else
                   echo "[E] '${PLATFORM}-${KVER}' - '${M}' depends '${1}' does not exist."
                 fi
@@ -209,7 +209,7 @@ jobs:
 
           echo "copy 3rd modules"
           PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/firmware"
-          cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/firmware/
+          [ -d "${PARTY3RD_PATH}" ] && cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/firmware/
 
           echo "extract all modules"
           for F in output/*.tgz; do
@@ -222,13 +222,14 @@ jobs:
           SOURCE=/tmp/linux-firmware
           git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
           while read L; do
+            [ -z "${L}" ] && continue
             if [ -e "${SOURCE}/${L}" ]; then
               mkdir -p "$(dirname firmware/${L})"
-              cp "${SOURCE}/${L}" "firmware/${L}"
+              cp -f "${SOURCE}/${L}" "firmware/${L}"
             else
               [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
             fi
-          done <<<$(find output -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
+          done <<<$(find output -name \*.ko -exec sh -c 'modinfo {} | grep ^firmware' \; | awk '{print $2}')
 
           tar -zcf firmware.tgz -C firmware .
 
