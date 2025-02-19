@@ -75,15 +75,6 @@ jobs:
             rm -rf ${ROOT_PATH}/spk
           fi
 
-          echo "build rr-wireless"
-          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-wireless ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
-          if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-wireless_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
-            mkdir -p ${ROOT_PATH}/spk
-            tar -xf ${ROOT_PATH}/spksrc/packages/rr-wireless_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
-            tar -zxf ${ROOT_PATH}/spk/package.tgz -C rr-addons/wireless/all/usr ./sbin/iw ./sbin/rfkill
-            rm -rf ${ROOT_PATH}/spk
-          fi
-
           echo "build rr-eudev"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-eudev ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-eudev_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
@@ -117,6 +108,24 @@ jobs:
             mkdir -p ${ROOT_PATH}/spk
             tar -xf ${ROOT_PATH}/spksrc/packages/rr-console_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
             cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/console/all/addons/console-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
+            rm -rf ${ROOT_PATH}/spk
+          fi
+
+          echo "build rr-vmtools"
+          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-vmtools ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
+          if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-vmtools_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
+            mkdir -p ${ROOT_PATH}/spk
+            tar -xf ${ROOT_PATH}/spksrc/packages/rr-vmtools_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
+            cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/vmtools/all/addons/vmtools-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
+            rm -rf ${ROOT_PATH}/spk
+          fi
+
+          echo "build rr-wireless"
+          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-wireless ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
+          if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-wireless_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
+            mkdir -p ${ROOT_PATH}/spk
+            tar -xf ${ROOT_PATH}/spksrc/packages/rr-wireless_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
+            cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/wireless/all/addons/wireless-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
 
