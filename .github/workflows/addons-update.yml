@@ -143,6 +143,12 @@ jobs:
             cp -vpf "${ROOT_PATH}/spksrc/cross/synoscgiproxy/work-${MAKE_ARCH}/install/usr/local/synoscgiproxy/sbin/synoscgiproxy" rr-addons/cpuinfo/all/usr/sbin
           fi
 
+          echo "build openssh"
+          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/cross/openssh ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
+          if [ -f "${ROOT_PATH}/spksrc/cross/openssh/work-${MAKE_ARCH}/install/usr/local/openssh/libexec/sftp-server" ]; then
+            cp -vpf "${ROOT_PATH}/spksrc/cross/openssh/work-${MAKE_ARCH}/install/usr/local/openssh/libexec/sftp-server" rr-addons/setrootpw/all/usr/lib/openssh/sftp-server
+          fi
+
       - name: Upload to Artifacts
         if: success() && inputs.push == false
         uses: actions/upload-artifact@v4
