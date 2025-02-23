@@ -129,6 +129,15 @@ jobs:
             rm -rf ${ROOT_PATH}/spk
           fi
 
+          echo "build rr-mountloader"
+          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-mountloader ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
+          if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-mountloader_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
+            mkdir -p ${ROOT_PATH}/spk
+            tar -xf ${ROOT_PATH}/spksrc/packages/rr-mountloader_${MAKE_ARCH}_*.spk -C ${ROOT_PATH}/spk
+            cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/mountloader/all/addons/mountloader-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
+            rm -rf ${ROOT_PATH}/spk
+          fi
+
           # build cross
 
           echo "build powersched"
