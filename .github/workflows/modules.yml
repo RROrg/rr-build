@@ -115,6 +115,8 @@ jobs:
             platform: r1000
           - version: 7.2
             platform: v1000
+          - version: 7.2
+            platform: v1000nk
 
     runs-on: ubuntu-latest
     steps:
@@ -150,7 +152,7 @@ jobs:
           . ${ROOT_PATH}/rp-modules/compile.sh
 
           echo "makeEnvDeploy"
-          makeEnvDeploy "${ROOT_PATH}" "${VERSION}" "${PLATFORM}"
+          TOKEN="${{ secrets.RRORG }}" makeEnvDeploy "${ROOT_PATH}" "${VERSION}" "${PLATFORM}"
 
           echo "makemodules"
           KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
@@ -166,19 +168,19 @@ jobs:
           . ${ROOT_PATH}/rp-modules/compile.sh
 
           KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
-          if [ "${PLATFORM}" = "epyc7002" ]; then
-            OFFICIAL_PATH="${ROOT_PATH}/rp-modules/official/hda1/${PLATFORM}-${VERSION}-${KVER}"
-            PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
-          else
+          if [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ]; then
             OFFICIAL_PATH="${ROOT_PATH}/rp-modules/official/hda1/${PLATFORM}-${KVER}"
             PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${KVER}"
+          else
+            OFFICIAL_PATH="${ROOT_PATH}/rp-modules/official/hda1/${PLATFORM}-${VERSION}-${KVER}"
+            PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
           fi
 
           echo "copy official modules"
           IU="apollolake braswell broadwell broadwellnk broadwellnkv2 broadwellntbap bromolow denverton geminilake grantley purley"
-          AU="epyc7002 r1000 v1000"
+          AU="v1000nk epyc7002 r1000 v1000"
           OM=(i915.ko processor.ko vfio.ko exfat.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko etxhci-hcd.ko)
-          echo "epyc7002" | grep -qw "${PLATFORM}" || OM+=(mlx_compat.ko mlx4_core.ko mlx4_en.ko mlx4_ib.ko mlx5_core.ko mlx5_ib.ko ib_core.ko qedr.ko)
+          [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ] && OM+=(mlx_compat.ko mlx4_core.ko mlx4_en.ko mlx4_ib.ko mlx5_core.ko mlx5_ib.ko ib_core.ko qedr.ko)
           echo "${IU}" | grep -qw "${PLATFORM}" && OM+=(irqbypass.ko kvm.ko kvm-intel.ko) || OM+=(irqbypass.ko kvm.ko kvm-amd.ko)
           for M in ${OM[@]}; do
             function _copydepends() {
@@ -222,10 +224,10 @@ jobs:
             }
             _copydepends "${M}"
           done
-          if [ "${PLATFORM}" = "epyc7002" ]; then
-            tar -zcf ${ROOT_PATH}/${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
-          else
+          if [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ]; then
             tar -zcf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output .
+          else
+            tar -zcf ${ROOT_PATH}/${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
           fi
 
       - name: Upload to Artifacts
@@ -290,7 +292,7 @@ jobs:
             else
               [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
             fi
-          done <<<$(find output -name \*.ko -exec sh -c 'modinfo {} | grep ^firmware' \; | awk '{print $2}')
+          done <<<$(find output -name \*.ko -exec /sbin/modinfo {} -F firmware \;)
 
           tar -zcf firmware.tgz -C firmware .
 
