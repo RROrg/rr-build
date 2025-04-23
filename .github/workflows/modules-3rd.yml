@@ -11,9 +11,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  official:
-    runs-on: ubuntu-latest
+  i915:
+    strategy:
+      matrix:
+        include:
+          - version: 7.1
+            platform: epyc7002
+          - version: 7.2
+            platform: epyc7002
+          - version: 7.2
+            platform: v1000nk
 
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@main
@@ -22,43 +31,84 @@ jobs:
           token: ${{ secrets.RRORG }}
           path: rr-modules
 
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/pkgscripts-ng
+          token: ${{ secrets.RRORG }}
+          path: pkgscripts-ng
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: moetayuko/intel-gpu-i915-backports
+          token: ${{ secrets.RRORG }}
+          path: intel-gpu-i915-backports
+
       - name: Init Env
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           sudo timedatectl set-timezone "Asia/Shanghai"
 
-      - name: Get official modules
+      - name: Build
         run: |
-          MSG=""
-          URL="https://api.github.com/repos/MoetaYuko/intel-gpu-i915-backports/releases"
-          TAG=$(curl -skL -H "Authorization: token ${{ secrets.RRORG }}" "${URL}" | jq -r ".[0].tag_name")
-          while read ID NAME; do
-            if echo "${NAME}" | grep -q 'epyc7002'; then
-              if echo "${NAME}" | grep -q '7.1'; then
-                DESTPATH="rr-modules/thirdparty/epyc7002-7.1-5.10.55"
-              elif echo "${NAME}" | grep -q '7.2'; then
-                DESTPATH="rr-modules/thirdparty/epyc7002-7.2-5.10.55"
-              else
-                echo "Unknown version"
-                exit 1
-              fi
-              STATUS=$(curl -kL -w "%{http_code}" -H "Authorization: token ${{ secrets.RRORG }}" -H "Accept: application/octet-stream" "${URL}/assets/${ID}" -o "i915.zip")
-              echo "TAG=${TAG}; Status=${STATUS}"
-              if [ ${STATUS:-0} -ne 200 ]; then
-                echo "Download failed"
-                exit 1
-              fi
-              mkdir -p i915
-              unzip "i915.zip" -d "i915"
-              cp -rf i915/modules/* ${DESTPATH}
-              cp -rf i915/firmware/* rr-modules/thirdparty/firmware
-              rm -rf i915.zip i915
-              MSG="${MSG} i915(${TAG})"
-            fi
-          done <<<$(curl -skL -H "Authorization: token ${{ secrets.RRORG }}" "${URL}/tags/${TAG}" | jq -r '.assets[] | "\(.id) \(.name)"')
+          ROOT_PATH=${{ github.workspace }}
+          VERSION=${{ matrix.version }}
+          PLATFORM=${{ matrix.platform }}
 
-          echo "MSG=${MSG}" >> $GITHUB_ENV
+          echo "getting toolkit"
+          if [ "v1000nk" = "${{ matrix.platform }}" ]; then
+            sudo "${ROOT_PATH}/pkgscripts-ng/maketoolkit.sh" "${PLATFORM}" "${VERSION}" "${ROOT_PATH}"
+          else
+            for N in env dev; do
+              curl -skL "https://global.synologydownload.com/download/ToolChain/toolkit/${VERSION}/${PLATFORM}/ds.${PLATFORM}-${VERSION}.${N}.txz" -o "${ROOT_PATH}/ds.${PLATFORM}-${VERSION}.${N}.txz"
+            done
+          fi
+          for N in env dev; do
+            [ ! -f "${ROOT_PATH}/ds.${PLATFORM}-${VERSION}.${N}.txz" ] && {
+              echo "ds.${PLATFORM}-${VERSION}.${N}.txz file not found"
+              exit 1
+            }
+            mkdir -p "${ROOT_PATH}/ds.${PLATFORM}-${VERSION}.${N}"
+            tar -xhf "${ROOT_PATH}/ds.${PLATFORM}-${VERSION}.${N}.txz" -C "${ROOT_PATH}/ds.${PLATFORM}-${VERSION}.${N}"
+          done
+
+          echo "building modules"
+          export CROSS_COMPILE=${ROOT_PATH}/ds.${PLATFORM}-${VERSION}.env/usr/local/x86_64-pc-linux-gnu/bin/x86_64-pc-linux-gnu-
+          export KLIB_BUILD=${ROOT_PATH}/ds.${PLATFORM}-${VERSION}.dev/usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root/usr/lib/modules/DSM-${VERSION}/build
+          (
+            cd "${ROOT_PATH}/intel-gpu-i915-backports"
+            make defconfig-drm
+            make -j"$(nproc)"
+            make -C "${KLIB_BUILD}" M="${PWD}" INSTALL_MOD_PATH="${PWD}/intermediates" INSTALL_MOD_STRIP=1 CONFIG_MODULE_SIG_ALL= _emodinst_
+          )
+          KVERSION=$(cat ${KLIB_BUILD}/Makefile | grep ^VERSION | awk -F' ' '{print $3}')
+          PATCHLEVEL=$(cat ${KLIB_BUILD}/Makefile | grep ^PATCHLEVEL | awk -F' ' '{print $3}')
+          SUBLEVEL=$(cat ${KLIB_BUILD}/Makefile | grep ^SUBLEVEL | awk -F' ' '{print $3}')
+          KVER="${KVERSION}.${PATCHLEVEL}.${SUBLEVEL}"
+
+          MODULES_INTERMEDIATES="${ROOT_PATH}/intel-gpu-i915-backports/intermediates"
+          OUT_MODULES="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
+          mkdir -p "${OUT_MODULES}"
+          find "${MODULES_INTERMEDIATES}" -type f -name '*.ko' -exec mv {} "${OUT_MODULES}" \;
+
+          git clone -b 20240115 --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+          SOURCE="${ROOT_PATH}/linux-firmware"
+          DEST="${ROOT_PATH}/rr-modules/thirdparty/firmware"
+          mkdir -p "${DEST}"
+          while read L; do
+            [ -z "${L}" ] && continue
+            if [ -e "${SOURCE}/${L}" ]; then
+              mkdir -p "$(dirname "${DEST}/${L}")"
+              cp -f "${SOURCE}/${L}" "${DEST}/${L}"
+            else
+              echo "::warning ::Missing $L"
+            fi
+          done <<<$(find "${OUT_MODULES}" -name \*.ko -exec /sbin/modinfo {} -F firmware \;)
+          sudo chmod -R 644 "${DEST}"/*
+
+          echo "MSG=i915" >> $GITHUB_ENV
 
       - name: Check and Push
         run: |
