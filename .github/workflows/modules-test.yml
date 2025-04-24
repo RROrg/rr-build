@@ -1,0 +1,289 @@
+#
+# Copyright (C) 2022 Ing <https://github.com/wjz304>
+#
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
+
+name: Build modules test
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "format %y.%-m.$i or auto"
+        required: false
+        type: string
+      prerelease:
+        description: "pre release"
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - version: 7.2
+            platform: v1000nk
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rp-modules
+          token: ${{ secrets.RRORG }}
+          path: rp-modules
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-modules
+          token: ${{ secrets.RRORG }}
+          path: rr-modules
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: Make modules
+        run: |
+          ROOT_PATH=${{ github.workspace }}
+          VERSION=${{ matrix.version }}
+          PLATFORM=${{ matrix.platform }}
+
+          . ${ROOT_PATH}/rp-modules/compile.sh
+
+          echo "makeEnvDeploy"
+          TOKEN="${{ secrets.RRORG }}" makeEnvDeploy "${ROOT_PATH}" "${VERSION}" "${PLATFORM}"
+
+          echo "makemodules"
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
+          cp -f "${ROOT_PATH}/rp-modules/src/${KVER}/defines.${PLATFORM}" "${ROOT_PATH}/rp-modules/src/${KVER}/defines"
+          makemodules "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/rp-modules/src/${KVER}" "${ROOT_PATH}/output"
+
+      - name: Tar to Artifacts
+        run: |
+          ROOT_PATH=${{ github.workspace }}
+          VERSION=${{ matrix.version }}
+          PLATFORM=${{ matrix.platform }}
+
+          . ${ROOT_PATH}/rp-modules/compile.sh
+
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
+          if [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ]; then
+            OFFICIAL_PATH="${ROOT_PATH}/rp-modules/official/hda1/${PLATFORM}-${KVER}"
+            PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${KVER}"
+          else
+            OFFICIAL_PATH="${ROOT_PATH}/rp-modules/official/hda1/${PLATFORM}-${VERSION}-${KVER}"
+            PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
+          fi
+
+          echo "copy official modules"
+          IU="apollolake braswell broadwell broadwellnk broadwellnkv2 broadwellntbap bromolow denverton geminilake grantley purley"
+          AU="v1000nk epyc7002 r1000 v1000"
+          OM=(i915.ko processor.ko vfio.ko exfat.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko etxhci-hcd.ko)
+          [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ] && OM+=(mlx_compat.ko mlx4_core.ko mlx4_en.ko mlx4_ib.ko mlx5_core.ko mlx5_ib.ko ib_core.ko qedr.ko)
+          echo "${IU}" | grep -qw "${PLATFORM}" && OM+=(irqbypass.ko kvm.ko kvm-intel.ko) || OM+=(irqbypass.ko kvm.ko kvm-amd.ko)
+          for M in ${OM[@]}; do
+            function _copydepends() {
+              [ -f "${OFFICIAL_PATH}/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output"
+              depends=($(modinfo "${OFFICIAL_PATH}/${1}" | grep depends: | awk -F: '{print $2}' | awk '$1=$1' | sed 's/,/ /g'))
+              if [ ${#depends[*]} -gt 0 ]; then
+                for k in ${depends[@]}; do
+                  _copydepends "${k}.ko"
+                done
+              fi
+            }
+            _copydepends "${M}"
+          done
+
+          echo "copy 3rd modules"
+          [ -d "${PARTY3RD_PATH}" ] && cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/output/
+
+          echo "check depends"
+          for M in $(ls ${ROOT_PATH}/output 2>/dev/null); do
+            function _copydepends() {
+              if [ ! -f "${ROOT_PATH}/output/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ]; then
+                if [ -f "${OFFICIAL_PATH}/${1}" ]; then
+                  cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output"
+                else
+                  echo "[E] '${PLATFORM}-${KVER}' - '${M}' depends '${1}' does not exist."
+                fi
+              fi
+              D=""
+              [ -z "${D}" ] && [ -f "${ROOT_PATH}/output/${1}" ] && D="${ROOT_PATH}/output/${1}"
+              [ -z "${D}" ] && [ -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && D="${OFFICIAL_PATH/hda1/rd}/${1}"
+              if [ -n "${D}" ]; then
+                # modinfo "${D}" || true
+                depends=($(modinfo "${D}" 2>/dev/null | grep depends: | awk -F: '{print $2}' | awk '$1=$1' | sed 's/,/ /g')) || true
+                if [ ${#depends[*]} -gt 0 ]; then
+                  for k in ${depends[@]}; do
+                    [ -f "${ROOT_PATH}/output/${k}.ko" ] && continue # Recursively skip wext-priv and wext-core dependencies on each other.
+                    _copydepends "${k}.ko"
+                  done
+                fi
+              fi
+            }
+            _copydepends "${M}"
+          done
+          if [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ]; then
+            tar -zcf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output .
+          else
+            tar -zcf ${ROOT_PATH}/${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
+          fi
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: modules-${{ matrix.version }}-${{ matrix.platform }}
+          path: |
+            *.tgz
+
+  firmware:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-modules
+          token: ${{ secrets.RRORG }}
+          path: rr-modules
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: download to artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: output
+          pattern: modules-*
+          merge-multiple: true
+
+      - name: firmware
+        run: |
+          ROOT_PATH=${{ github.workspace }}
+
+          mkdir -p ${ROOT_PATH}/firmware
+
+          echo "copy 3rd modules"
+          PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/firmware"
+          [ -d "${PARTY3RD_PATH}" ] && cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/firmware/
+
+          echo "extract all modules"
+          for F in output/*.tgz; do
+            echo "${F}"
+            mkdir -p "${F%.tgz}"
+            tar -zxf "${F}" -C "${F%.tgz}" || echo "Failed to extract ${F}"
+          done
+
+          echo "get firmware"
+          SOURCE=/tmp/linux-firmware
+          git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
+          while read L; do
+            [ -z "${L}" ] && continue
+            if [ -e "${SOURCE}/${L}" ]; then
+              mkdir -p "$(dirname firmware/${L})"
+              cp -f "${SOURCE}/${L}" "firmware/${L}"
+            else
+              [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
+            fi
+          done <<<$(find output -name \*.ko -exec /sbin/modinfo {} -F firmware \;)
+
+          tar -zcf firmware.tgz -C firmware .
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: modules-firmware
+          path: |
+            firmware.tgz
+
+  release:
+    runs-on: ubuntu-latest
+    needs: firmware
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: Calculate version
+        run: |
+          # Calculate version
+          VERSION=""
+          if [ -n "${{ inputs.version }}" ]; then
+            if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
+              VERSION="${{ inputs.version }}"
+            else
+              LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.RRORG }}" "https://api.github.com/repos/RROrg/rr-modules/releases" | jq -r ".[0].tag_name" 2>/dev/null)"
+              if [ -n "${LATEST_TAG}" ] && [ "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
+                VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
+              else
+                VERSION="$(date +'%y.%-m').0"
+              fi
+            fi
+          else
+            VERSION=""
+          fi
+
+          echo "VERSION: ${VERSION}"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: download to artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: output
+          pattern: modules-*
+          merge-multiple: true
+
+      - name: delete-artifact
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            modules-*
+
+      - name: Zip modules
+        run: |
+          VERSION="${{ env.VERSION }}"
+          VERSION="${VERSION:-"test"}"
+
+          echo "${VERSION}" > "output/VERSION"
+          zip -9 modules-${VERSION}.zip -j output/*
+
+      - name: Upload to Artifacts
+        if: success() && env.VERSION == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: modules
+          path: |
+            modules*.zip
+          retention-days: 5
+
+      - name: Release
+        if: success() && env.VERSION != ''
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.VERSION }}
+          prerelease: ${{ inputs.prerelease }}
+          artifacts: modules*.zip
+          owner: RROrg
+          repo: rr-modules
+          token: ${{ secrets.RRORG }}
