@@ -41,7 +41,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
         with:
-          repository: moetayuko/intel-gpu-i915-backports
+          repository: RROrg/intel-gpu-i915-backports
           token: ${{ secrets.RRORG }}
           path: intel-gpu-i915-backports
 
@@ -93,7 +93,7 @@ jobs:
           mkdir -p "${OUT_MODULES}"
           find "${MODULES_INTERMEDIATES}" -type f -name '*.ko' -exec mv {} "${OUT_MODULES}" \;
 
-          git clone -b 20240115 --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+          git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
           SOURCE="${ROOT_PATH}/linux-firmware"
           DEST="${ROOT_PATH}/rr-modules/thirdparty/firmware"
           mkdir -p "${DEST}"
