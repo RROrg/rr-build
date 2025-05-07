@@ -127,8 +127,8 @@ jobs:
           cd rr
           . scripts/func.sh "${{ secrets.RRORG }}"
 
-          echo "Create RR_1GB image"
-          IMAGE_FILE="rr_1GB.img"
+          echo "Create RR_2GB image"
+          IMAGE_FILE="rr_2GB.img"
           gzip -dc "files/initrd/opt/rr/grub.img.gz" >"${IMAGE_FILE}"
           fdisk -l "${IMAGE_FILE}"
 
@@ -162,8 +162,8 @@ jobs:
 
           sudo losetup --detach "${LOOPX}"
 
-          echo "Create RR_4GB image" # $((1024 * 3 - 512))
-          resizeImg "rr_1GB.img" "+2560M" "rr.img"
+          echo "Create RR_4GB image"
+          resizeImg "rr_2GB.img" "+2048M" "rr.img"
 
           echo "Create RR ova"
           convertova "rr.img" "rr.ova"
@@ -180,8 +180,8 @@ jobs:
           VERSION="${{ env.VERSION }}"
           VERSION="${VERSION:-"${TAGDATE}"}"
 
-          sha256sum rr_1GB.img >sha256sum
-          zip -9 "rr_1GB-${VERSION}.img.zip" rr_1GB.img sha256sum
+          sha256sum rr_2GB.img >sha256sum
+          zip -9 "rr_2GB-${VERSION}.img.zip" rr_2GB.img sha256sum
 
           sha256sum rr.img >sha256sum
           zip -9 "rr-${VERSION}.img.zip" rr.img sha256sum
@@ -275,9 +275,9 @@ jobs:
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: rr_1GB.img
+          name: rr_2GB.img
           path: |
-            rr/rr_1GB-*.zip
+            rr/rr_2GB-*.zip
           retention-days: 5
 
       - name: Upload to Artifacts
