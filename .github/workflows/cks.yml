@@ -229,7 +229,7 @@ jobs:
             else
               [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
             fi
-          done <<<$(find output -name \*.ko -exec sh -c 'modinfo {} | grep ^firmware' \; | awk '{print $2}')
+          done <<<$(find output -name \*.ko -exec /sbin/modinfo {} -F firmware \;)
 
           tar -zcf firmware.tgz -C firmware .
 
