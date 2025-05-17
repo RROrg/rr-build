@@ -185,7 +185,7 @@ jobs:
           for M in ${OM[@]}; do
             function _copydepends() {
               [ -f "${OFFICIAL_PATH}/${1}" ] && [ ! -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && cp -f "${OFFICIAL_PATH}/${1}" "${ROOT_PATH}/output"
-              depends=($(modinfo "${OFFICIAL_PATH}/${1}" | grep depends: | awk -F: '{print $2}' | awk '$1=$1' | sed 's/,/ /g'))
+              depends=($(modinfo -F depends "${OFFICIAL_PATH}/${1}" 2>/dev/null | sed 's/,/ /g'))
               if [ ${#depends[*]} -gt 0 ]; then
                 for k in ${depends[@]}; do
                   _copydepends "${k}.ko"
@@ -213,7 +213,7 @@ jobs:
               [ -z "${D}" ] && [ -f "${OFFICIAL_PATH/hda1/rd}/${1}" ] && D="${OFFICIAL_PATH/hda1/rd}/${1}"
               if [ -n "${D}" ]; then
                 # modinfo "${D}" || true
-                depends=($(modinfo "${D}" 2>/dev/null | grep depends: | awk -F: '{print $2}' | awk '$1=$1' | sed 's/,/ /g')) || true
+                depends=($(modinfo -F depends "${D}" 2>/dev/null | sed 's/,/ /g')) || true
                 if [ ${#depends[*]} -gt 0 ]; then
                   for k in ${depends[@]}; do
                     [ -f "${ROOT_PATH}/output/${k}.ko" ] && continue # Recursively skip wext-priv and wext-core dependencies on each other.
@@ -292,7 +292,7 @@ jobs:
             else
               [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
             fi
-          done <<<$(find output -name \*.ko -exec /sbin/modinfo {} -F firmware \;)
+          done <<<$(find output -name \*.ko -exec /sbin/modinfo -F firmware {} 2>/dev/null \;)
 
           tar -zcf firmware.tgz -C firmware .
 

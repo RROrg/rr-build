@@ -104,7 +104,7 @@ jobs:
             else
               echo "::warning ::Missing $L"
             fi
-          done <<<$(find "${OUT_MODULES}" -name \*.ko -exec /sbin/modinfo {} -F firmware \;)
+          done <<<$(find "${OUT_MODULES}" -name \*.ko -exec /sbin/modinfo -F firmware {} 2>/dev/null \;)
 
           echo "MSG=i915" >> $GITHUB_ENV
 
