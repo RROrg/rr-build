@@ -20,6 +20,10 @@ jobs:
           - version: 7.2
             platform: epyc7002
           - version: 7.2
+            platform: geminilakenk
+          - version: 7.2
+            platform: r1000nk
+          - version: 7.2
             platform: v1000nk
 
     runs-on: ubuntu-latest
@@ -30,13 +34,6 @@ jobs:
           repository: RROrg/rr-modules
           token: ${{ secrets.RRORG }}
           path: rr-modules
-
-      - name: Checkout
-        uses: actions/checkout@main
-        with:
-          repository: RROrg/pkgscripts-ng
-          token: ${{ secrets.RRORG }}
-          path: pkgscripts-ng
 
       - name: Checkout
         uses: actions/checkout@main
@@ -58,13 +55,10 @@ jobs:
           PLATFORM=${{ matrix.platform }}
 
           echo "getting toolkit"
-          if [ "v1000nk" = "${{ matrix.platform }}" ]; then
-            sudo "${ROOT_PATH}/pkgscripts-ng/maketoolkit.sh" "${PLATFORM}" "${VERSION}" "${ROOT_PATH}"
-          else
-            for N in env dev; do
-              curl -skL "https://global.synologydownload.com/download/ToolChain/toolkit/${VERSION}/${PLATFORM}/ds.${PLATFORM}-${VERSION}.${N}.txz" -o "${ROOT_PATH}/ds.${PLATFORM}-${VERSION}.${N}.txz"
-            done
-          fi
+          for N in env dev; do
+            curl -skL "https://global.synologydownload.com/download/ToolChain/toolkit/${VERSION}/${PLATFORM}/ds.${PLATFORM}-${VERSION}.${N}.txz" -o "${ROOT_PATH}/ds.${PLATFORM}-${VERSION}.${N}.txz"
+          done
+
           for N in env dev; do
             [ ! -f "${ROOT_PATH}/ds.${PLATFORM}-${VERSION}.${N}.txz" ] && {
               echo "ds.${PLATFORM}-${VERSION}.${N}.txz file not found"

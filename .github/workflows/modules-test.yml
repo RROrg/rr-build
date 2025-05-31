@@ -86,10 +86,10 @@ jobs:
           fi
 
           echo "copy official modules"
-          IU="apollolake braswell broadwell broadwellnk broadwellnkv2 broadwellntbap bromolow denverton geminilake grantley purley"
-          AU="v1000nk epyc7002 r1000 v1000"
-          OM=(i915.ko processor.ko vfio.ko exfat.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko etxhci-hcd.ko)
-          [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ] && OM+=(mlx_compat.ko mlx4_core.ko mlx4_en.ko mlx4_ib.ko mlx5_core.ko mlx5_ib.ko ib_core.ko qedr.ko)
+          IU="apollolake braswell broadwell broadwellnk broadwellnkv2 broadwellntbap bromolow denverton geminilake grantley purley geminilakenk"
+          AU="r1000 v1000 epyc7002 r1000nk v1000nk"
+          OM=(auxiliary.ko i40e.ko ixgbe.ko processor.ko vfio.ko exfat.ko ehci-hcd.ko ehci-pci.ko uhci-hcd.ko xhci-hcd.ko xhci-pci.ko etxhci-hcd.ko)
+          [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ] && OM+=(i915.ko mlx_compat.ko mlx4_core.ko mlx4_en.ko mlx4_ib.ko mlx5_core.ko mlx5_ib.ko ib_core.ko qed.ko qede.ko qedr.ko)
           echo "${IU}" | grep -qw "${PLATFORM}" && OM+=(irqbypass.ko kvm.ko kvm-intel.ko) || OM+=(irqbypass.ko kvm.ko kvm-amd.ko)
           for M in ${OM[@]}; do
             function _copydepends() {

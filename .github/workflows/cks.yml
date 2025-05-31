@@ -72,13 +72,9 @@ jobs:
           PLATFORM=${{ matrix.platform }}
           CONFIG=${{ matrix.config }}
 
-          if [ "${VERSION}" = "7.2" ]; then
-            git clone --depth=1 https://github.com/RROrg/linux_dsm_epyc7002.git
-            git clone --depth=1 https://github.com/MoetaYuko/intel-gpu-i915-backports.git
-          else
-            echo "Only support 7.2"
-            exit 1
-          fi
+
+          git clone -b ${PLATFORM} --depth=1 https://github.com/RROrg/dsm_linux_5.10.55.git
+          git clone --depth=1 https://github.com/MoetaYuko/intel-gpu-i915-backports.git
 
           . ${ROOT_PATH}/rp-modules/compile-ck.sh
 
@@ -87,24 +83,24 @@ jobs:
 
           echo "makekernel"
           if [ -n "${CONFIG}" ]; then
-            if [ -f "${ROOT_PATH}/linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}_${CONFIG}" ]; then
-              cp -f "${ROOT_PATH}/linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}_${CONFIG}" "${ROOT_PATH}/linux_dsm_epyc7002/synology/synoconfigs/${PLATFORM}"
+            if [ -f "${ROOT_PATH}/dsm_linux_5.10.55/synology/synoconfigs/${PLATFORM}_${CONFIG}" ]; then
+              cp -f "${ROOT_PATH}/dsm_linux_5.10.55/synology/synoconfigs/${PLATFORM}_${CONFIG}" "${ROOT_PATH}/dsm_linux_5.10.55/synology/synoconfigs/${PLATFORM}"
             else
               echo "Config ${PLATFORM}_${CONFIG} does not exist."
               exit 1
             fi
           fi
-          makekernel "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/linux_dsm_epyc7002" "${ROOT_PATH}/output"
+          makekernel "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux_5.10.55" "${ROOT_PATH}/output"
 
           echo "makemodules"
-          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/linux_dsm_epyc7002")"
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux_5.10.55")"
           cp -f "${ROOT_PATH}/rp-modules/src/${KVER}-ck/defines.${PLATFORM}" "${ROOT_PATH}/rp-modules/src/${KVER}-ck/defines"
-          makemodules "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/linux_dsm_epyc7002" "${ROOT_PATH}/rp-modules/src/${KVER}-ck" "${ROOT_PATH}/modules"
+          makemodules "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux_5.10.55" "${ROOT_PATH}/rp-modules/src/${KVER}-ck" "${ROOT_PATH}/modules"
           cp -rf "${ROOT_PATH}/modules/"* "${ROOT_PATH}/output"
 
           if [ ! "${CONFIG}" = "drm" ]; then
             echo "makei915"
-            makei915 "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/linux_dsm_epyc7002" "${ROOT_PATH}/intel-gpu-i915-backports" "${ROOT_PATH}/i915"
+            makei915 "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux_5.10.55" "${ROOT_PATH}/intel-gpu-i915-backports" "${ROOT_PATH}/i915"
             cp -rf "${ROOT_PATH}/i915/"* "${ROOT_PATH}/output"
           fi
 
@@ -116,7 +112,7 @@ jobs:
 
           . ${ROOT_PATH}/rp-modules/compile-ck.sh
 
-          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "linux_dsm_epyc7002")"
+          KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "dsm_linux_5.10.55")"
           if [ "${PLATFORM}" = "epyc7002" ]; then
             PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
           else
