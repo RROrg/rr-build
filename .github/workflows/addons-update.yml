@@ -66,7 +66,7 @@ jobs:
           MAKE_ARCH="x64-7.1" # [x64-7.1, aarch64-7.1]
           # build packages
 
-          echo "build rr-misc"
+          echo "######## build rr-misc begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-misc ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-misc_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
@@ -74,8 +74,9 @@ jobs:
             tar -zxf ${ROOT_PATH}/spk/package.tgz -C rr-addons/misc/all/usr
             rm -rf ${ROOT_PATH}/spk
           fi
+          echo "######## build rr-misc end ########"
 
-          echo "build rr-eudev"
+          echo "######## build rr-eudev begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-eudev ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-eudev_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
@@ -83,8 +84,9 @@ jobs:
             cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/eudev/all/addons/eudev-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
+          echo "######## build rr-eudev end ########"
 
-          echo "build rr-acpid"
+          echo "######## build rr-acpid begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-acpid ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-acpid_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
@@ -92,8 +94,9 @@ jobs:
             cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/acpid/all/addons/acpid-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
+          echo "######## build rr-acpid end ########"
 
-          echo "build rr-sensors"
+          echo "######## build rr-sensors begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-sensors ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-sensors_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
@@ -101,8 +104,9 @@ jobs:
             cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/sensors/all/addons/sensors-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
+          echo "######## build rr-sensors end ########"
 
-          echo "build rr-console"
+          echo "######## build rr-console begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-console ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-console_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
@@ -110,8 +114,9 @@ jobs:
             cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/console/all/addons/console-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
+          echo "######## build rr-console end ########"
 
-          echo "build rr-vmtools"
+          echo "######## build rr-vmtools begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-vmtools ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-vmtools_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
@@ -119,8 +124,9 @@ jobs:
             cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/vmtools/all/addons/vmtools-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
+          echo "######## build rr-vmtools end ########"
 
-          echo "build rr-wireless"
+          echo "######## build rr-wireless begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-wireless ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-wireless_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
@@ -128,8 +134,9 @@ jobs:
             cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/wireless/all/addons/wireless-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
-
-          echo "build rr-mountloader"
+          echo "######## build rr-wireless end ########"
+          
+          echo "######## build rr-mountloader begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-mountloader ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-mountloader_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
@@ -137,8 +144,9 @@ jobs:
             cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/mountloader/all/addons/mountloader-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
-
-          echo "build rr-monitor"
+          echo "######## build rr-mountloader end ########"
+          
+          echo "######## build rr-monitor begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/spk/rr-monitor ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -n "$(ls ${ROOT_PATH}/spksrc/packages/rr-monitor_${MAKE_ARCH}_*.spk 2>/dev/null)" ]; then
             mkdir -p ${ROOT_PATH}/spk
@@ -146,26 +154,30 @@ jobs:
             cp -vf ${ROOT_PATH}/spk/package.tgz rr-addons/monitor/all/addons/monitor-$(echo ${MAKE_ARCH} | cut -d- -f2).tgz
             rm -rf ${ROOT_PATH}/spk
           fi
-
+          echo "######## build rr-monitor end ########"
+          
           # build cross
 
-          echo "build powersched"
+          echo "######## build powersched begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/cross/powersched ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -f "${ROOT_PATH}/spksrc/cross/powersched/work-${MAKE_ARCH}/install/usr/local/powersched/sbin/powersched" ]; then
             cp -vpf "${ROOT_PATH}/spksrc/cross/powersched/work-${MAKE_ARCH}/install/usr/local/powersched/sbin/powersched" rr-addons/powersched/all/usr/sbin
           fi
+          echo "######## build powersched end ########"
 
-          echo "build synoscgiproxy"
+          echo "######## build synoscgiproxy begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/cross/synoscgiproxy ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -f "${ROOT_PATH}/spksrc/cross/synoscgiproxy/work-${MAKE_ARCH}/install/usr/local/synoscgiproxy/sbin/synoscgiproxy" ]; then
             cp -vpf "${ROOT_PATH}/spksrc/cross/synoscgiproxy/work-${MAKE_ARCH}/install/usr/local/synoscgiproxy/sbin/synoscgiproxy" rr-addons/cpuinfo/all/usr/sbin
           fi
+          echo "######## build synoscgiproxy end ########"
 
-          echo "build openssh"
+          echo "######## build openssh begin ########"
           docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/cross/openssh ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
           if [ -f "${ROOT_PATH}/spksrc/cross/openssh/work-${MAKE_ARCH}/install/usr/local/openssh/libexec/sftp-server" ]; then
             cp -vpf "${ROOT_PATH}/spksrc/cross/openssh/work-${MAKE_ARCH}/install/usr/local/openssh/libexec/sftp-server" rr-addons/setrootpw/all/usr/lib/openssh/sftp-server
           fi
+          echo "######## build openssh end ########"
 
       - name: Upload to Artifacts
         if: success() && inputs.push == false
