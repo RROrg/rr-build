@@ -35,6 +35,13 @@ jobs:
           token: ${{ secrets.RRORG }}
           path: rr
 
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-misc
+          token: ${{ secrets.RRORG }}
+          path: rr-misc
+
       # Install dependencies
       - name: Install dependencies
         run: |
@@ -49,6 +56,18 @@ jobs:
           if ! type yq >/dev/null 2>&1 || ! yq --version 2>/dev/null | grep -q "v4."; then
             sudo curl -kL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/bin/yq && sudo chmod a+x /usr/bin/yq
           fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       # calculates the version number and push
       - name: Calculate version
@@ -78,12 +97,19 @@ jobs:
           echo "VERSION=${VERSION}" >>$GITHUB_ENV
 
           cd rr
+          [ "${{ inputs.prerelease }}" = "true" ] && RELEASE="pre" || RELEASE=""
+          sed -i "s/^RR_RELEASE=.*$/RR_RELEASE=\"${RELEASE}\"/" files/initrd/opt/rr/include/consts.sh
           if [ -n "${VERSION}" ]; then
             # Modify Source File
             echo "${VERSION}" >VERSION
             echo "${VERSION}" >files/mnt/p1/RR_VERSION
             sed -i "s/^RR_VERSION=.*$/RR_VERSION=\"${VERSION}\"/" files/initrd/opt/rr/include/consts.sh
-
+          else
+            echo "${TAGDATE}" >VERSION
+            echo "${TAGDATE}" >files/mnt/p1/RR_VERSION
+            sed -i "s/^RR_VERSION=.*$/RR_VERSION=\"${TAGDATE}\"/" files/initrd/opt/rr/include/consts.sh
+          fi
+          if [ -n "${VERSION}" ]; then
             git checkout main
             git pull
             status=$(git status -s | awk '{printf " %s", $2}')
@@ -92,34 +118,39 @@ jobs:
               git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
               git push -f
             fi
-          else
-            sed -i "s/^RR_VERSION=.*$/RR_VERSION=\"${TAGDATE}\"/" files/initrd/opt/rr/include/consts.sh
           fi
           cd -
 
       # Convert po2mo, Get exts
       - name: Convert po2mo, Get extractor, LKMs, addons and Modules
         run: |
-          cd rr
-          . scripts/func.sh "${{ secrets.RRORG }}"
+          . rr/scripts/func.sh "${{ secrets.RRORG }}"
 
           echo "Get extractor"
-          getCKs "files/mnt/p3/cks" "true"
-          getLKMs "files/mnt/p3/lkms" "true"
-          getAddons "files/mnt/p3/addons" "true"
-          getModules "files/mnt/p3/modules" "true"
-          getBuildroot "files/mnt/p3" "true"
-          getExtractor "files/mnt/p3/extractor"
+          getCKs "rr/files/mnt/p3/cks" "true"
+          getLKMs "rr/files/mnt/p3/lkms" "true"
+          getAddons "rr/files/mnt/p3/addons" "true"
+          getModules "rr/files/mnt/p3/modules" "true"
+          getBuildroot "rr/files/mnt/p3" "true"
+          getExtractor "rr/files/mnt/p3/extractor"
 
           echo "Repack initrd"
+          convertpo2mo "rr/files/initrd/opt/rr/lang"
+          repackInitrd "rr/files/mnt/p3/initrd-rr" "rr/files/initrd"
 
-          [ "${{ inputs.prerelease }}" = "true" ] && RELEASE="pre" || RELEASE=""
-          sed -i "s/^RR_RELEASE=.*$/RR_RELEASE=\"${RELEASE}\"/" files/initrd/opt/rr/include/consts.sh
+          echo "Unpack initrd"
+          unpackInitrd "rr/files/mnt/p3/initrd-rr" "rr-misc/docker/rr/initrd"
 
-          convertpo2mo "files/initrd/opt/rr/lang"
-          repackInitrd "files/mnt/p3/initrd-rr" "files/initrd"
-
-          echo "OK"
+      - name: Build and push Docker image
+        if: success() && env.VERSION != ''  
+        uses: docker/build-push-action@v5
+        with:
+          context: rr-misc/docker/rr
+          file: rr-misc/docker/rr/Dockerfile
+          push: true
+          tags: |
+            RROrg/rr:${{ env.VERSION }}
+            RROrg/rr:latest
 
       # Build incremental
       - name: Build image
@@ -146,15 +177,22 @@ jobs:
               echo "Can't mount ${LOOPX}p${i}."
               break
             }
-            echo "Copying files to ${LOOPX}p${i}"
-            [ ${i} -eq 1 ] && sudo cp -af "files/mnt/p${i}/"{.locale,.timezone} "/tmp/mnt/p${i}/" 2>/dev/null || true
-            sudo cp -rf "files/mnt/p${i}/"* "/tmp/mnt/p${i}" || true
 
+            echo "Copying files to ${LOOPX}p${i}"
+            sudo cp -rf "files/mnt/p${i}/". "/tmp/mnt/p${i}" || {
+                echo "Can't copy files to ${LOOPX}p${i}."
+                sudo umount "/tmp/mnt/p${i}"
+                rm -rf "/tmp/mnt/p${i}"
+                break
+            }
+
+            echo "Sync ${LOOPX}p${i}"
             sudo sync
 
             echo "Unmounting ${LOOPX}p${i}"
             sudo umount "/tmp/mnt/p${i}" || {
               echo "Can't umount ${LOOPX}p${i}."
+              rm -rf "/tmp/mnt/p${i}"
               break
             }
             rm -rf "/tmp/mnt/p${i}"
