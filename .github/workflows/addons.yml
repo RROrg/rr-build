@@ -54,8 +54,6 @@ jobs:
                 VERSION="$(date +'%y.%-m').0"
               fi
             fi
-          else
-            VERSION=""
           fi
 
           echo "VERSION: ${VERSION}"
