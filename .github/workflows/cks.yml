@@ -74,7 +74,7 @@ jobs:
 
 
           git clone -b ${PLATFORM} --depth=1 https://github.com/RROrg/dsm_linux_5.10.55.git
-          git clone --depth=1 https://github.com/MoetaYuko/intel-gpu-i915-backports.git
+          git clone --depth=1 https://github.com/RROrg/intel-gpu-i915-backports.git
 
           . ${ROOT_PATH}/rp-modules/compile-ck.sh
 
