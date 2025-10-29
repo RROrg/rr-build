@@ -98,7 +98,7 @@ jobs:
           makemodules "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux_5.10.55" "${ROOT_PATH}/rp-modules/src/${KVER}-ck" "${ROOT_PATH}/modules"
           cp -rf "${ROOT_PATH}/modules/"* "${ROOT_PATH}/output"
 
-          if [ ! "${CONFIG}" = "drm" ]; then
+          if [ -z "${CONFIG}" ]; then
             echo "makei915"
             makei915 "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux_5.10.55" "${ROOT_PATH}/intel-gpu-i915-backports" "${ROOT_PATH}/i915"
             cp -rf "${ROOT_PATH}/i915/"* "${ROOT_PATH}/output"
