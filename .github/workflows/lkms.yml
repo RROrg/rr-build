@@ -121,6 +121,14 @@ jobs:
             platform: r1000nk
           - version: 7.2
             platform: v1000nk
+          - version: 7.3
+            platform: epyc7002
+          - version: 7.3
+            platform: geminilakenk
+          - version: 7.3
+            platform: r1000nk
+          - version: 7.3
+            platform: v1000nk
 
     runs-on: ubuntu-latest
     steps:
@@ -145,6 +153,7 @@ jobs:
           ROOT_PATH=${{ github.workspace }}
           VERSION=${{ matrix.version }}
           PLATFORM=${{ matrix.platform }}
+          [ "${{ matrix.version }}" = "7.3" ] && VERSION="7.2" || true  ### Synology only provide DSM 7.2 toolkits for now ###
 
           . ${ROOT_PATH}/rr-lkms/compile.sh
 
@@ -153,6 +162,8 @@ jobs:
 
           echo "makemodules"
           makelkms "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/rr-lkms" "${ROOT_PATH}/output"
+
+          [ "${{ matrix.version }}" = "7.3" ] && for F in ${ROOT_PATH}/output/*.ko.gz; do sudo mv -f "${F}" "${F/-7.2/-7.3}"; done || true  ### Synology only provide DSM 7.2 toolkits for now ###
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4

@@ -25,6 +25,14 @@ jobs:
             platform: r1000nk
           - version: 7.2
             platform: v1000nk
+          - version: 7.3
+            platform: epyc7002
+          - version: 7.3
+            platform: geminilakenk
+          - version: 7.3
+            platform: r1000nk
+          - version: 7.3
+            platform: v1000nk
 
     runs-on: ubuntu-latest
     steps:
@@ -53,6 +61,7 @@ jobs:
           ROOT_PATH=${{ github.workspace }}
           VERSION=${{ matrix.version }}
           PLATFORM=${{ matrix.platform }}
+          [ "${{ matrix.version }}" = "7.3" ] && VERSION="7.2" || true  ### Synology only provide DSM 7.2 toolkits for now ###
 
           echo "getting toolkit"
           for N in env dev; do
@@ -83,11 +92,13 @@ jobs:
           KVER="${KVERSION}.${PATCHLEVEL}.${SUBLEVEL}"
 
           MODULES_INTERMEDIATES="${ROOT_PATH}/intel-gpu-i915-backports/intermediates"
+          [ "${{ matrix.version }}" = "7.3" ] && VERSION="7.3" || true  ### Synology only provide DSM 7.2 toolkits for now ###
           OUT_MODULES="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
           mkdir -p "${OUT_MODULES}"
           find "${MODULES_INTERMEDIATES}" -type f -name '*.ko' -exec mv {} "${OUT_MODULES}" \;
 
           git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+          cp -rf ${SOURCE}/intel/iwlwifi/* ${SOURCE}/ 2>/dev/null || true # Move intel firmware to top dir for easy search
           SOURCE="${ROOT_PATH}/linux-firmware"
           DEST="${ROOT_PATH}/rr-modules/thirdparty/firmware"
           while read L; do
