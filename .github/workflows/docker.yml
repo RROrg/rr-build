@@ -11,6 +11,10 @@ on:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        app: ["kmscon", "kodi"]
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -19,9 +23,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
         with:
-          repository: RROrg/rr-misc
+          repository: RROrg/dockers
           token: ${{ secrets.RRORG }}
-          path: rr-misc
+          path: dockers
 
       - name: Init Env
         run: |
@@ -49,7 +53,7 @@ jobs:
             if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
               VERSION="${{ inputs.version }}"
             else
-              LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.DOCKERHUB_PASSWORD }}" "https://hub.docker.com/v2/repositories/${{ secrets.DOCKERHUB_USERNAME }}/syno-kmscon/tags" | jq -r ".results[].name" | grep -v latest | sort -V | tail -n 1 2>/dev/null)"
+              LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.DOCKERHUB_PASSWORD }}" "https://hub.docker.com/v2/repositories/${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.app }}/tags" | jq -r ".results[].name" | grep -v latest | sort -V | tail -n 1 2>/dev/null)"
               if [ -n "${LATEST_TAG}" ] && [ "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
                 VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
               else
@@ -66,42 +70,9 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./rr-misc/docker/kmscon
-          file: ./rr-misc/docker/kmscon/Dockerfile
+          context: ./dockers/${{ matrix.app }}
+          file: ./dockers/${{ matrix.app }}/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/syno-kmscon:${{ env.VERSION }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/syno-kmscon:latest
-
-
-      - name: Calculate version
-        run: |
-          # Calculate version
-          VERSION=""
-          if [ -n "${{ inputs.version }}" ]; then
-            if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
-              VERSION="${{ inputs.version }}"
-            else
-              LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.DOCKERHUB_PASSWORD }}" "https://hub.docker.com/v2/repositories/${{ secrets.DOCKERHUB_USERNAME }}/syno-kodi/tags" | jq -r ".results[].name" | grep -v latest | sort -V | tail -n 1 2>/dev/null)"
-              if [ -n "${LATEST_TAG}" ] && [ "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
-                VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
-              else
-                VERSION="$(date +'%y.%-m').0"
-              fi
-            fi
-          else
-            VERSION="$(date +'%Y%m%d%H%M')"
-          fi
-
-          echo "VERSION: ${VERSION}"
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./rr-misc/docker/kodi
-          file: ./rr-misc/docker/kodi/Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/syno-kodi:${{ env.VERSION }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/syno-kodi:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.app }}:${{ env.VERSION }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.app }}:latest
