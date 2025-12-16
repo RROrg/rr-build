@@ -143,43 +143,7 @@ jobs:
           IMAGE_FILE="rr_2GB.img"
           gzip -dc "files/initrd/opt/rr/grub.img.gz" >"${IMAGE_FILE}"
           fdisk -l "${IMAGE_FILE}"
-
-          LOOPX=$(sudo losetup -f)
-          sudo losetup -P "${LOOPX}" "${IMAGE_FILE}"
-
-          for i in {1..3}; do
-            [ ! -d "files/mnt/p${i}" ] && continue
-
-            rm -rf "/tmp/mnt/p${i}"
-            mkdir -p "/tmp/mnt/p${i}"
-
-            echo "Mounting ${LOOPX}p${i}"
-            sudo mount "${LOOPX}p${i}" "/tmp/mnt/p${i}" || {
-              echo "Can't mount ${LOOPX}p${i}."
-              break
-            }
-
-            echo "Copying files to ${LOOPX}p${i}"
-            sudo cp -rf "files/mnt/p${i}/". "/tmp/mnt/p${i}" || {
-                echo "Can't copy files to ${LOOPX}p${i}."
-                sudo umount "/tmp/mnt/p${i}"
-                rm -rf "/tmp/mnt/p${i}"
-                break
-            }
-
-            echo "Sync ${LOOPX}p${i}"
-            sudo sync
-
-            echo "Unmounting ${LOOPX}p${i}"
-            sudo umount "/tmp/mnt/p${i}" || {
-              echo "Can't umount ${LOOPX}p${i}."
-              rm -rf "/tmp/mnt/p${i}"
-              break
-            }
-            rm -rf "/tmp/mnt/p${i}"
-          done
-
-          sudo losetup --detach "${LOOPX}"
+          repackImg files "${IMAGE_FILE}"
 
           echo "Create RR_4GB image"
           resizeImg "rr_2GB.img" "+2048M" "rr.img"
