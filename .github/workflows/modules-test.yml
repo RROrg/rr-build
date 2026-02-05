@@ -57,7 +57,7 @@ jobs:
           ROOT_PATH=${{ github.workspace }}
           VERSION=${{ matrix.version }}
           PLATFORM=${{ matrix.platform }}
-          [ "${{ matrix.version }}" = "7.3" ] && VERSION="7.2" || true  ### Synology only provide DSM 7.2 toolkits for now ###
+
           . ${ROOT_PATH}/rp-modules/compile.sh
 
           echo "makeEnvDeploy"
@@ -73,10 +73,10 @@ jobs:
           ROOT_PATH=${{ github.workspace }}
           VERSION=${{ matrix.version }}
           PLATFORM=${{ matrix.platform }}
-          [ "${{ matrix.version }}" = "7.3" ] && VERSION="7.2" || true  ### Synology only provide DSM 7.2 toolkits for now ###
+
           . ${ROOT_PATH}/rp-modules/compile.sh
           KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
-          [ "${{ matrix.version }}" = "7.3" ] && VERSION="7.3" || true  ### Synology only provide DSM 7.2 toolkits for now ###
+
           if [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ]; then
             OFFICIAL_PATH="${ROOT_PATH}/rp-modules/official/hda1/${PLATFORM}-${KVER}"
             PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${KVER}"

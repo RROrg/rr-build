@@ -61,8 +61,7 @@ jobs:
           ROOT_PATH=${{ github.workspace }}
           VERSION=${{ matrix.version }}
           PLATFORM=${{ matrix.platform }}
-          [ "${{ matrix.version }}" = "7.3" ] && VERSION="7.2" || true  ### Synology only provide DSM 7.2 toolkits for now ###
-
+  
           echo "getting toolkit"
           for N in env dev; do
             curl -skL "https://global.synologydownload.com/download/ToolChain/toolkit/${VERSION}/${PLATFORM}/ds.${PLATFORM}-${VERSION}.${N}.txz" -o "${ROOT_PATH}/ds.${PLATFORM}-${VERSION}.${N}.txz"
@@ -92,7 +91,6 @@ jobs:
           KVER="${KVERSION}.${PATCHLEVEL}.${SUBLEVEL}"
 
           MODULES_INTERMEDIATES="${ROOT_PATH}/intel-gpu-i915-backports/intermediates"
-          [ "${{ matrix.version }}" = "7.3" ] && VERSION="7.3" || true  ### Synology only provide DSM 7.2 toolkits for now ###
           OUT_MODULES="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
           mkdir -p "${OUT_MODULES}"
           find "${MODULES_INTERMEDIATES}" -type f -name '*.ko' -exec mv {} "${OUT_MODULES}" \;

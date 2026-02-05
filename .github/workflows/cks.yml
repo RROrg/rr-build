@@ -64,7 +64,6 @@ jobs:
           ROOT_PATH=${{ github.workspace }}
           VERSION=${{ matrix.version }}
           PLATFORM=${{ matrix.platform }}
-          [ "${{ matrix.version }}" = "7.3" ] && VERSION="7.2" || true  ### Synology only provide DSM 7.2 toolkits for now ###
 
           git clone -b ${PLATFORM} --depth=1 https://github.com/RROrg/dsm_linux_5.10.55.git
           git clone --depth=1 https://github.com/RROrg/intel-gpu-i915-backports.git
@@ -94,10 +93,9 @@ jobs:
           VERSION=${{ matrix.version }}
           PLATFORM=${{ matrix.platform }}
 
-          [ "${{ matrix.version }}" = "7.3" ] && VERSION="7.2" || true  ### Synology only provide DSM 7.2 toolkits for now ###
           . ${ROOT_PATH}/rp-modules/compile-ck.sh
           KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "dsm_linux_5.10.55")"
-          [ "${{ matrix.version }}" = "7.3" ] && VERSION="7.3" || true  ### Synology only provide DSM 7.2 toolkits for now ###
+
           if [ "${PLATFORM}" = "epyc7002" ]; then
             PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
           else
