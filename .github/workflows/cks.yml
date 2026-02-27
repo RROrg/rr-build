@@ -30,6 +30,8 @@ jobs:
             platform: epyc7002
           - version: 7.3
             platform: epyc7002
+          - version: 7.3
+            platform: geminilakenk
 
     runs-on: ubuntu-latest
     steps:
@@ -81,8 +83,10 @@ jobs:
           cp -f "${ROOT_PATH}/rp-modules/src/${KVER}-ck/defines.${PLATFORM}" "${ROOT_PATH}/rp-modules/src/${KVER}-ck/defines"
           makemodules "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux" "${ROOT_PATH}/rp-modules/src/${KVER}-ck" "${ROOT_PATH}/modules"
 
-          echo "makei915"
-          makei915 "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux" "${ROOT_PATH}/intel-gpu-i915-backports" "${ROOT_PATH}/modules/update"
+          if ! echo "geminilakenk" | grep -wq "${PLATFORM}"; then
+            echo "makei915"
+            makei915 "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux" "${ROOT_PATH}/intel-gpu-i915-backports" "${ROOT_PATH}/modules/update"
+          fi
 
           cp -rf "${ROOT_PATH}/modules/"* "${ROOT_PATH}/output/modules/"
 
@@ -96,10 +100,10 @@ jobs:
           . ${ROOT_PATH}/rp-modules/compile-ck.sh
           KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux")"
 
-          if [ "${PLATFORM}" = "epyc7002" ]; then
-            PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
-          else
+          if [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ]; then
             PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/${PLATFORM}-${KVER}"
+          else
+            PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
           fi
 
           echo "copy 3rd modules"
@@ -131,12 +135,13 @@ jobs:
             }
             _copydepends "${M}"
           done
-          if [ "${PLATFORM}" = "epyc7002" ]; then
-            tar -zcf ${ROOT_PATH}/modules-${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
-            gzip -c ${ROOT_PATH}/output/bzImage >${ROOT_PATH}/bzImage-${PLATFORM}-${VERSION}-${KVER}.gz
-          else
+
+          if [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ]; then
             tar -zcf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
             gzip -c ${ROOT_PATH}/output/bzImage >${ROOT_PATH}/bzImage-${PLATFORM}-${KVER}.gz
+          else
+            tar -zcf ${ROOT_PATH}/modules-${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
+            gzip -c ${ROOT_PATH}/output/bzImage >${ROOT_PATH}/bzImage-${PLATFORM}-${VERSION}-${KVER}.gz
           fi
 
       - name: Upload to Artifacts
