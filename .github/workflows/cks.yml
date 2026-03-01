@@ -83,10 +83,10 @@ jobs:
           cp -f "${ROOT_PATH}/rp-modules/src/${KVER}-ck/defines.${PLATFORM}" "${ROOT_PATH}/rp-modules/src/${KVER}-ck/defines"
           makemodules "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux" "${ROOT_PATH}/rp-modules/src/${KVER}-ck" "${ROOT_PATH}/modules"
 
-          if ! echo "geminilakenk" | grep -wq "${PLATFORM}"; then
+          # if ! echo "geminilakenk" | grep -wq "${PLATFORM}"; then
             echo "makei915"
             makei915 "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux" "${ROOT_PATH}/intel-gpu-i915-backports" "${ROOT_PATH}/modules/update"
-          fi
+          # fi
 
           cp -rf "${ROOT_PATH}/modules/"* "${ROOT_PATH}/output/modules/"
 
