@@ -13,7 +13,7 @@ jobs:
   build:
     strategy:
       matrix:
-        app: ["kmscon", "kodi"]
+        app: ["kmscon", "kodi", "chromium-desktop", "ubuntu-desktop"]
 
     runs-on: ubuntu-latest
     steps:
