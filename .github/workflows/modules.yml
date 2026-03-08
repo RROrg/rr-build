@@ -86,43 +86,44 @@ jobs:
             platform: v1000
 
           - version: 7.2
-            platform: apollolake
-          # - version: 7.2
-          #   platform: braswell
-          - version: 7.2
-            platform: broadwell
-          - version: 7.2
-            platform: broadwellnk
-          - version: 7.2
-            platform: broadwellnkv2
-          - version: 7.2
-            platform: broadwellntbap
-          # - version: 7.2
-          #   platform: bromolow
-          - version: 7.2
-            platform: denverton
-          - version: 7.2
             platform: epyc7002
-          - version: 7.2
-            platform: geminilake
-          # - version: 7.2
-          #   platform: grantley
-          ## - version: 7.2
-          ##   platform: kvmx64
-          - version: 7.2
-            platform: purley
-          - version: 7.2
-            platform: r1000
-          - version: 7.2
-            platform: v1000
           - version: 7.2
             platform: geminilakenk
           - version: 7.2
             platform: r1000nk
           - version: 7.2
             platform: v1000nk
+
+          - version: 7.3
+            platform: apollolake
+          # - version: 7.3
+          #   platform: braswell
+          - version: 7.3
+            platform: broadwell
+          - version: 7.3
+            platform: broadwellnk
+          - version: 7.3
+            platform: broadwellnkv2
+          - version: 7.3
+            platform: broadwellntbap
+          # - version: 7.3
+          #   platform: bromolow
+          - version: 7.3
+            platform: denverton
           - version: 7.3
             platform: epyc7002
+          - version: 7.3
+            platform: geminilake
+          # - version: 7.3
+          #   platform: grantley
+          ## - version: 7.3
+          ##   platform: kvmx64
+          - version: 7.3
+            platform: purley
+          - version: 7.3
+            platform: r1000
+          - version: 7.3
+            platform: v1000
           - version: 7.3
             platform: geminilakenk
           - version: 7.3
