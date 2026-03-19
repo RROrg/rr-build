@@ -91,7 +91,11 @@ jobs:
           KVER="${KVERSION}.${PATCHLEVEL}.${SUBLEVEL}"
 
           MODULES_INTERMEDIATES="${ROOT_PATH}/intel-gpu-i915-backports/intermediates"
-          OUT_MODULES="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
+          if [ ${PLATFORM} = "geminilakenk" ]; then
+            OUT_MODULES="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}/update"
+          else
+            OUT_MODULES="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
+          fi
           mkdir -p "${OUT_MODULES}"
           find "${MODULES_INTERMEDIATES}" -type f -name '*.ko' -exec mv {} "${OUT_MODULES}" \;
 
@@ -119,5 +123,5 @@ jobs:
           if [ -n "${status}" ]; then
             git add ${status}
             git commit -m "update ${{ env.MSG }}"
-            git push -f
+            git push
           fi
