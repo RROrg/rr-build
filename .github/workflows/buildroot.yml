@@ -103,7 +103,7 @@ jobs:
 
       - name: Upload artifact
         if: success() && env.VERSION == ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: buildroot
           path: |

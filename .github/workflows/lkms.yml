@@ -164,7 +164,7 @@ jobs:
           makelkms "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/rr-lkms" "${ROOT_PATH}/output"
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rp-lkms-${{ matrix.version }}-${{ matrix.platform }}
           path: |
@@ -226,7 +226,7 @@ jobs:
 
       - name: Upload to Artifacts
         if: success() && env.VERSION == ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rp-lkms
           path: |

@@ -156,7 +156,7 @@ jobs:
           fi
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: modules-${{ matrix.version }}-${{ matrix.platform }}
           path: |
@@ -223,7 +223,7 @@ jobs:
           tar -zcf firmware.tgz -C firmware .
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: modules-firmware
           path: |
@@ -285,7 +285,7 @@ jobs:
 
       - name: Upload to Artifacts
         if: success() && env.VERSION == ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: modules
           path: |

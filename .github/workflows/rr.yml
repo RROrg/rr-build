@@ -224,7 +224,7 @@ jobs:
 
       # Upload artifact
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rr.img
           path: |
@@ -232,7 +232,7 @@ jobs:
           retention-days: 5
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rr.ova
           path: |
@@ -240,7 +240,7 @@ jobs:
           retention-days: 5
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rr.vhd
           path: |
@@ -248,7 +248,7 @@ jobs:
           retention-days: 5
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: updateall
           path: |
@@ -256,7 +256,7 @@ jobs:
           retention-days: 5
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rr_2GB.img
           path: |
@@ -264,7 +264,7 @@ jobs:
           retention-days: 5
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: update
           path: |
