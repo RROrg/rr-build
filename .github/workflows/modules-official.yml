@@ -22,6 +22,13 @@ jobs:
           token: ${{ secrets.RRORG }}
           path: rp-modules
 
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/syno-modules
+          token: ${{ secrets.RRORG }}
+          path: syno-modules
+
       - name: Init Env
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -30,14 +37,13 @@ jobs:
 
       - name: Get official modules
         run: |
-          cd rp-modules
-          . ./getOfficial.sh "x86_64"
+          ROOT_PATH=${{ github.workspace }}/syno-modules ${{ github.workspace }}/rp-modules/getOfficial.sh "x86_64 aarch64"
 
       - name: Check and Push
         run: |
-          cd rp-modules
+          cd syno-modules
           git pull
-          status=$(git status -s | grep -E 'official' | awk '{printf " %s", $2}')
+          status=$(git status -s | grep -E '(rd|hda1)/' | awk '{printf " %s", $2}')
           if [ -n "${status}" ]; then
             git add ${status}
             git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
