@@ -26,8 +26,10 @@ jobs:
         include:
           #- version: 7.1
           #  platform: epyc7002
+
           - version: 7.2
             platform: epyc7002
+
           - version: 7.3
             platform: epyc7002
           - version: 7.3
@@ -100,11 +102,7 @@ jobs:
           . ${ROOT_PATH}/rp-modules/compile-ck.sh
           KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" "${ROOT_PATH}/dsm_linux")"
 
-          if [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ]; then
-            PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/${PLATFORM}-${KVER}"
-          else
-            PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
-          fi
+          PARTY3RD_PATH="${ROOT_PATH}/rr-cks/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
 
           echo "copy 3rd modules"
           [ -d "${PARTY3RD_PATH}" ] && cp -rf ${PARTY3RD_PATH}/* ${ROOT_PATH}/output/modules/
@@ -136,13 +134,8 @@ jobs:
             _copydepends "${M}"
           done
 
-          if [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ]; then
-            tar -zcf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
-            gzip -c ${ROOT_PATH}/output/bzImage >${ROOT_PATH}/bzImage-${PLATFORM}-${KVER}.gz
-          else
-            tar -zcf ${ROOT_PATH}/modules-${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
-            gzip -c ${ROOT_PATH}/output/bzImage >${ROOT_PATH}/bzImage-${PLATFORM}-${VERSION}-${KVER}.gz
-          fi
+          tar -zcf ${ROOT_PATH}/modules-${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output/modules .
+          gzip -c ${ROOT_PATH}/output/bzImage >${ROOT_PATH}/bzImage-${PLATFORM}-${VERSION}-${KVER}.gz
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v7

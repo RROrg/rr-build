@@ -24,40 +24,56 @@ jobs:
     strategy:
       matrix:
         include:
-          # - version: 6.2
-          #   platform: apollolake
-          # - version: 6.2
-          #   platform: braswell
-          # - version: 6.2
-          #   platform: broadwell
-          # - version: 6.2
-          #   platform: broadwellnk
-          # - version: 6.2
-          #   platform: broadwellntbap
-          # - version: 6.2
-          #   platform: bromolow
-          # - version: 6.2
-          #   platform: denverton
-          # # checkout 6.2.4
-          # - version: 6.2
-          #   platform: geminilake
-          # # checkout 6.2.4
-          # - version: 6.2
-          #   platform: grantley
-          # ## checkout 6.2.4
-          # ## - version: 6.2
-          # ##   platform: kvmx64
-          # # checkout 6.2.4
-          # - version: 6.2
-          #   platform: purley
-          # # checkout 6.2.4
-          # - version: 6.2
-          #   platform: v1000
+          #- version: 6.2
+          #  platform: apollolake
+          ##- version: 6.2
+          ##  platform: braswell
+          #- version: 6.2
+          #  platform: broadwell
+          #- version: 6.2
+          #  platform: broadwellnk
+          ##- version: 6.2
+          ##  platform: bromolow
+          #- version: 6.2
+          #  platform: denverton
+          #- version: 6.2
+          #  platform: geminilake
+          ##- version: 6.2
+          ##  platform: grantley
+          ##- version: 6.2
+          ##  platform: kvmx64
+          #- version: 6.2
+          #  platform: purley
+          #- version: 6.2
+          #  platform: v1000
+
+          - version: "7.0"
+            platform: apollolake
+          #- version: "7.0"
+          #  platform: braswell
+          - version: "7.0"
+            platform: broadwell
+          - version: "7.0"
+            platform: broadwellnk
+          #- version: "7.0"
+          #  platform: bromolow
+          - version: "7.0"
+            platform: denverton
+          - version: "7.0"
+            platform: geminilake
+          #- version: "7.0"
+          #  platform: grantley
+          #- version: "7.0"
+          #  platform: kvmx64
+          - version: "7.0"
+            platform: purley
+          - version: "7.0"
+            platform: v1000
 
           - version: 7.1
             platform: apollolake
-          # - version: 7.1
-          #   platform: braswell
+          #- version: 7.1
+          #  platform: braswell
           - version: 7.1
             platform: broadwell
           - version: 7.1
@@ -66,18 +82,18 @@ jobs:
             platform: broadwellnkv2
           - version: 7.1
             platform: broadwellntbap
-          # - version: 7.1
-          #   platform: bromolow
+          #- version: 7.1
+          #  platform: bromolow
           - version: 7.1
             platform: denverton
           - version: 7.1
             platform: epyc7002
           - version: 7.1
             platform: geminilake
-          # - version: 7.1
-          #   platform: grantley
-          ## - version: 7.1
-          ##   platform: kvmx64
+          #- version: 7.1
+          #  platform: grantley
+          #- version: 7.1
+          #  platform: kvmx64
           - version: 7.1
             platform: purley
           - version: 7.1
@@ -86,18 +102,46 @@ jobs:
             platform: v1000
 
           - version: 7.2
+            platform: apollolake
+          #- version: 7.2
+          #  platform: braswell
+          - version: 7.2
+            platform: broadwell
+          - version: 7.2
+            platform: broadwellnk
+          - version: 7.2
+            platform: broadwellnkv2
+          - version: 7.2
+            platform: broadwellntbap
+          #- version: 7.2
+          #  platform: bromolow
+          - version: 7.2
+            platform: denverton
+          - version: 7.2
             platform: epyc7002
           - version: 7.2
+            platform: geminilake
+          - version: 7.2
             platform: geminilakenk
+          #- version: 7.2
+          #  platform: grantley
+          #- version: 7.2
+          #  platform: kvmx64
+          - version: 7.2
+            platform: purley
+          - version: 7.2
+            platform: r1000
           - version: 7.2
             platform: r1000nk
+          - version: 7.2
+            platform: v1000
           - version: 7.2
             platform: v1000nk
 
           - version: 7.3
             platform: apollolake
-          # - version: 7.3
-          #   platform: braswell
+          #- version: 7.3
+          #  platform: braswell
           - version: 7.3
             platform: broadwell
           - version: 7.3
@@ -106,28 +150,28 @@ jobs:
             platform: broadwellnkv2
           - version: 7.3
             platform: broadwellntbap
-          # - version: 7.3
-          #   platform: bromolow
+          #- version: 7.3
+          #  platform: bromolow
           - version: 7.3
             platform: denverton
           - version: 7.3
             platform: epyc7002
           - version: 7.3
             platform: geminilake
-          # - version: 7.3
-          #   platform: grantley
-          ## - version: 7.3
-          ##   platform: kvmx64
+          - version: 7.3
+            platform: geminilakenk
+          #- version: 7.3
+          #  platform: grantley
+          #- version: 7.3
+          #  platform: kvmx64
           - version: 7.3
             platform: purley
           - version: 7.3
             platform: r1000
           - version: 7.3
-            platform: v1000
-          - version: 7.3
-            platform: geminilakenk
-          - version: 7.3
             platform: r1000nk
+          - version: 7.3
+            platform: v1000
           - version: 7.3
             platform: v1000nk
 
@@ -135,6 +179,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/syno-modules
+          token: ${{ secrets.RRORG }}
+          path: syno-modules
 
       - name: Checkout
         uses: actions/checkout@main
@@ -165,7 +216,7 @@ jobs:
           . ${ROOT_PATH}/rp-modules/compile.sh
 
           echo "makeEnvDeploy"
-          TOKEN="${{ secrets.RRORG }}" makeEnvDeploy "${ROOT_PATH}" "${VERSION}" "${PLATFORM}"
+          for i in $(seq 1 3); do makeEnvDeploy "${ROOT_PATH}" "${VERSION}" "${PLATFORM}" && break || { echo "Retry makeEnvDeploy ${i}/3"; sleep 5; }; done
 
           echo "makemodules"
           KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
@@ -181,13 +232,9 @@ jobs:
           . ${ROOT_PATH}/rp-modules/compile.sh
           KVER="$(getKver "${ROOT_PATH}" "${VERSION}" "${PLATFORM}")"
 
-          if [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ]; then
-            OFFICIAL_PATH="${ROOT_PATH}/rp-modules/official/hda1/${PLATFORM}-${KVER}"
-            PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${KVER}"
-          else
-            OFFICIAL_PATH="${ROOT_PATH}/rp-modules/official/hda1/${PLATFORM}-${VERSION}-${KVER}"
-            PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
-          fi
+          OFFICIAL_PATH="${ROOT_PATH}/syno-modules/hda1/${PLATFORM}-${VERSION}-${KVER}"
+          PARTY3RD_PATH="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
+
 
           echo "copy official modules"
           IU="apollolake braswell broadwell broadwellnk broadwellnkv2 broadwellntbap bromolow denverton geminilake grantley purley geminilakenk"
@@ -237,11 +284,8 @@ jobs:
             }
             _copydepends "${M}"
           done
-          if [ "$(echo "${KVER:-4}" | cut -d'.' -f1)" -lt 5 ]; then
-            tar -zcf ${ROOT_PATH}/${PLATFORM}-${KVER}.tgz -C ${ROOT_PATH}/output .
-          else
-            tar -zcf ${ROOT_PATH}/${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
-          fi
+
+          tar -zcf ${ROOT_PATH}/${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v7
