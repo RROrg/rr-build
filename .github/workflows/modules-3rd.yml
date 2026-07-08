@@ -37,7 +37,19 @@ jobs:
             platform: v1000nk
 
           - version: 7.4
+            platform: epyc7002
+          - version: 7.4
+            platform: epyc7003
+          - version: 7.4
             platform: epyc7003ntb
+          - version: 7.4
+            platform: geminilakenk
+          - version: 7.4
+            platform: icelaked
+          - version: 7.4
+            platform: r1000nk
+          - version: 7.4
+            platform: v1000nk
 
     runs-on: ubuntu-latest
     steps:
