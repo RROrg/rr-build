@@ -176,7 +176,47 @@ jobs:
             platform: v1000nk
 
           - version: 7.4
+            platform: apollolake
+          #- version: 7.4
+          #  platform: braswell
+          - version: 7.4
+            platform: broadwell
+          - version: 7.4
+            platform: broadwellnk
+          - version: 7.4
+            platform: broadwellnkv2
+          - version: 7.4
+            platform: broadwellntbap
+          #- version: 7.4
+          #  platform: bromolow
+          - version: 7.4
+            platform: denverton
+          - version: 7.4
+            platform: epyc7002
+          - version: 7.4
+            platform: epyc7003
+          - version: 7.4
             platform: epyc7003ntb
+          - version: 7.4
+            platform: geminilake
+          - version: 7.4
+            platform: geminilakenk
+          #- version: 7.4
+          #  platform: grantley
+          - version: 7.4
+            platform: icelaked
+          #- version: 7.4
+          #  platform: kvmx64
+          - version: 7.4
+            platform: purley
+          - version: 7.4
+            platform: r1000
+          - version: 7.4
+            platform: r1000nk
+          - version: 7.4
+            platform: v1000
+          - version: 7.4
+            platform: v1000nk
 
     runs-on: ubuntu-latest
     steps:
