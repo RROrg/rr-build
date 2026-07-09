@@ -56,13 +56,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
         with:
-          repository: RROrg/rr-modules
-          token: ${{ secrets.RRORG }}
-          path: rr-modules
-
-      - name: Checkout
-        uses: actions/checkout@main
-        with:
           repository: RROrg/intel-gpu-i915-backports
           token: ${{ secrets.RRORG }}
           path: intel-gpu-i915-backports
@@ -109,28 +102,79 @@ jobs:
 
           MODULES_INTERMEDIATES="${ROOT_PATH}/intel-gpu-i915-backports/intermediates"
           if [ ${PLATFORM} = "geminilakenk" ]; then
-            OUT_MODULES="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}/update"
+            OUT_MODULES="${ROOT_PATH}/output/update"
           else
-            OUT_MODULES="${ROOT_PATH}/rr-modules/thirdparty/${PLATFORM}-${VERSION}-${KVER}"
+            OUT_MODULES="${ROOT_PATH}/output"
           fi
           mkdir -p "${OUT_MODULES}"
           find "${MODULES_INTERMEDIATES}" -type f -name '*.ko' -exec mv {} "${OUT_MODULES}" \;
 
-          git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
-          cp -rf ${SOURCE}/intel/iwlwifi/* ${SOURCE}/ 2>/dev/null || true # Move intel firmware to top dir for easy search
+          tar -zcf ${ROOT_PATH}/i915-${PLATFORM}-${VERSION}-${KVER}.tgz -C ${OUT_MODULES} .
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: i915-${{ matrix.version }}-${{ matrix.platform }}
+          path: |
+            i915-*.tgz
+
+  release:
+    runs-on: ubuntu-latest
+    needs: i915
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: RROrg/rr-modules
+          token: ${{ secrets.RRORG }}
+          path: rr-modules
+
+      - name: Init Env
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: download to artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: output
+          pattern: i915-*
+          merge-multiple: true
+
+      - name: delete-artifact
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            i915-*
+
+      - name: firmware
+        run: |
+          ROOT_PATH=${{ github.workspace }}
+
+          echo "extract all modules"
+          OUT_MODULES="${ROOT_PATH}/rr-modules/thirdparty"
+          for F in output/i915-*.tgz; do
+            echo "${F}"
+            DIR_NAME="${OUT_MODULES}/$(echo $(basename "${F}" .tgz 2>/dev/null) | sed 's/^i915-//')"
+            rm -rf "${DIR_NAME}"
+            mkdir -p "${DIR_NAME}"
+            tar -zxf "${F}" -C "${DIR_NAME}" || echo "Failed to extract ${F}"
+          done
+
           SOURCE="${ROOT_PATH}/linux-firmware"
-          DEST="${ROOT_PATH}/rr-modules/thirdparty/firmware"
+          DEST="${OUT_MODULES}/firmware"
+          git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git ${SOURCE}
+          cp -rf ${SOURCE}/intel/iwlwifi/* ${SOURCE}/ 2>/dev/null || true # Move intel firmware to top dir for easy search
           while read L; do
             [ -z "${L}" ] && continue
             if [ -e "${SOURCE}/${L}" ]; then
               mkdir -p "$(dirname "${DEST}/${L}")"
               cp -vf "${SOURCE}/${L}" "${DEST}/${L}"
             else
-              echo "::warning ::Missing $L"
+              echo "::warning ::Missing ${L}"
             fi
           done <<<$(find "${OUT_MODULES}" -name \*.ko -exec /sbin/modinfo -F firmware {} 2>/dev/null \;)
-
-          echo "MSG=i915" >> $GITHUB_ENV
 
       - name: Check and Push
         run: |
@@ -139,6 +183,6 @@ jobs:
           status=$(git status -s | grep -E 'thirdparty' | awk '{printf " %s", $2}')
           if [ -n "${status}" ]; then
             git add ${status}
-            git commit -m "update ${{ env.MSG }}"
+            git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
             git push
           fi

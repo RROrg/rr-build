@@ -206,10 +206,10 @@ jobs:
           while read L; do
             [ -z "${L}" ] && continue
             if [ -e "${SOURCE}/${L}" ]; then
-              mkdir -p "$(dirname firmware/${L})"
+              mkdir -p "$(dirname "firmware/${L}")"
               cp -f "${SOURCE}/${L}" "firmware/${L}"
             else
-              [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "Missing ${L}"
+              [ -e "firmware/${L}" ] && echo "Used thirdparty ${L}" || echo "::warning ::Missing ${L}"
             fi
           done <<<$(find output -name \*.ko -exec /sbin/modinfo -F firmware {} 2>/dev/null \;)
 
