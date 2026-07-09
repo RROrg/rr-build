@@ -35,6 +35,11 @@ jobs:
           - version: 7.3
             platform: geminilakenk
 
+          - version: 7.4
+            platform: epyc7002
+          - version: 7.4
+            platform: geminilakenk
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
