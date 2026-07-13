@@ -358,7 +358,7 @@ jobs:
           sudo timedatectl set-timezone "Asia/Shanghai"
 
       - name: download to artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: output
           pattern: modules-*
@@ -438,14 +438,14 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: download to artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: output
           pattern: modules-*
           merge-multiple: true
 
       - name: delete-artifact
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@v6
         with:
           name: |
             modules-*

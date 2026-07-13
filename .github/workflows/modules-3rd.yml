@@ -109,7 +109,7 @@ jobs:
           mkdir -p "${OUT_MODULES}"
           find "${MODULES_INTERMEDIATES}" -type f -name '*.ko' -exec mv {} "${OUT_MODULES}" \;
 
-          tar -zcf ${ROOT_PATH}/i915-${PLATFORM}-${VERSION}-${KVER}.tgz -C ${OUT_MODULES} .
+          tar -zcf ${ROOT_PATH}/i915-${PLATFORM}-${VERSION}-${KVER}.tgz -C ${ROOT_PATH}/output .
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v7
@@ -136,14 +136,14 @@ jobs:
           sudo timedatectl set-timezone "Asia/Shanghai"
 
       - name: download to artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: output
           pattern: i915-*
           merge-multiple: true
 
       - name: delete-artifact
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@v6
         with:
           name: |
             i915-*
