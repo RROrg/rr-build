@@ -179,6 +179,13 @@ jobs:
           fi
           echo "######## build openssh end ########"
 
+          echo "######## build grub begin ########"
+          docker run -v ${ROOT_PATH}/spksrc:/spksrc -w /spksrc/cross/grub ghcr.io/synocommunity/spksrc make "arch-${MAKE_ARCH}"
+          if [ -f "${ROOT_PATH}/spksrc/cross/grub/work-${MAKE_ARCH}/install/usr/local/grub/bin/grub-editenv" ]; then
+            cp -vpf "${ROOT_PATH}/spksrc/cross/grub/work-${MAKE_ARCH}/install/usr/local/grub/bin/grub-editenv" rr-addons/reboottoloader/all/usr/bin/grub-editenv
+          fi
+          echo "######## build grub end ########"
+
       - name: Upload to Artifacts
         if: success() && inputs.push == false
         uses: actions/upload-artifact@v7
