@@ -46,26 +46,27 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Calculate version
+        id: version
         run: |
           # Calculate version
-          VERSION=""
+          version=""
           if [ -n "${{ inputs.version }}" ]; then
             if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
-              VERSION="${{ inputs.version }}"
+              version="${{ inputs.version }}"
             else
               LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.DOCKERHUB_PASSWORD }}" "https://hub.docker.com/v2/repositories/${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.app }}/tags" | jq -r ".results[].name" | grep -v latest | sort -V | tail -n 1 2>/dev/null)"
               if [ -n "${LATEST_TAG}" ] && [ "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
-                VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
+                version="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
               else
-                VERSION="$(date +'%y.%-m').0"
+                version="$(date +'%y.%-m').0"
               fi
             fi
           else
-            VERSION="$(date +'%Y%m%d%H%M')"
+            version="$(date +'%Y%m%d%H%M')"
           fi
 
-          echo "VERSION: ${VERSION}"
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "version: ${version}"
+          echo "version=${version}" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
@@ -75,5 +76,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.app }}:${{ env.VERSION }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.app }}:${{ steps.version.outputs.version }}
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.app }}:latest

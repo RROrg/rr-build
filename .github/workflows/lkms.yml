@@ -271,24 +271,25 @@ jobs:
           sudo timedatectl set-timezone "Asia/Shanghai"
 
       - name: Calculate version
+        id: version
         run: |
           # Calculate version
-          VERSION=""
+          version=""
           if [ -n "${{ inputs.version }}" ]; then
             if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
-              VERSION="${{ inputs.version }}"
+              version="${{ inputs.version }}"
             else
               LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.RRORG }}" "https://api.github.com/repos/RROrg/rr-lkms/releases" | jq -r ".[0].tag_name" 2>/dev/null)"
               if [ -n "${LATEST_TAG}" ] && [ "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
-                VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
+                version="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
               else
-                VERSION="$(date +'%y.%-m').0"
+                version="$(date +'%y.%-m').0"
               fi
             fi
           fi
 
-          echo "VERSION: ${VERSION}"
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "version: ${version}"
+          echo "version=${version}" >> $GITHUB_OUTPUT
 
       - name: download to artifacts
         uses: actions/download-artifact@v8
@@ -305,14 +306,14 @@ jobs:
 
       - name: Zip lkms
         run: |
-          VERSION="${{ env.VERSION }}"
-          VERSION="${VERSION:-"test"}"
+          version="${{ steps.version.outputs.version }}"
+          version="${version:-"test"}"
 
-          echo "${VERSION}" > "output/VERSION"
-          zip -9 rp-lkms-${VERSION}.zip -j output/*
+          echo "${version}" > "output/VERSION"
+          zip -9 rp-lkms-${version}.zip -j output/*
 
       - name: Upload to Artifacts
-        if: success() && env.VERSION == ''
+        if: success() && steps.version.outputs.version == ''
         uses: actions/upload-artifact@v7
         with:
           name: rp-lkms
@@ -321,10 +322,10 @@ jobs:
           retention-days: 5
 
       - name: Release
-        if: success() && env.VERSION != ''
+        if: success() && steps.version.outputs.version != ''
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ env.VERSION }}
+          tag: ${{ steps.version.outputs.version }}
           prerelease: ${{ inputs.prerelease }}
           artifacts: rp-lkms*.zip
           owner: RROrg

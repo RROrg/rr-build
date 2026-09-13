@@ -74,7 +74,6 @@ jobs:
       - name: Check and Push
         if: success() && inputs.push == true
         run: |
-
           [ -f "grub.img.gz" ] && mv -f grub.img.gz rr/files/initrd/opt/rr/grub.img.gz
 
           cd rr

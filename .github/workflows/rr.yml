@@ -59,42 +59,39 @@ jobs:
 
       # calculates the version number and push
       - name: Calculate version
+        id: version
         run: |
           # Calculate version
-          TAGDATE="$(date +'%Y%m%d%H%M')"
-          VERSION=""
+
+          version=""
 
           if [ -n "${{ inputs.version }}" ]; then
             if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
-              VERSION="${{ inputs.version }}"
+              version="${{ inputs.version }}"
             else
               LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.RRORG }}" "https://api.github.com/repos/RROrg/rr/releases" | jq -r ".[0].tag_name" 2>/dev/null)"
               if [ -n "${LATEST_TAG}" ] && [ "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
-                VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
+                version="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
               else
-                VERSION="$(date +'%y.%-m').0"
+                version="$(date +'%y.%-m').0"
               fi
             fi
           fi
 
-          echo "TAGDATE: ${TAGDATE}"
-          echo "VERSION: ${VERSION}"
-          echo "TAGDATE=${TAGDATE}" >>$GITHUB_ENV
-          echo "VERSION=${VERSION}" >>$GITHUB_ENV
+          echo "version: ${version}"
+          echo "version=${version}" >> $GITHUB_OUTPUT
+
+          tagdate="$(date +'%Y%m%d%H%M')"
+          echo "tagdate: ${tagdate}"
+          echo "tagdate=${tagdate}" >> $GITHUB_OUTPUT
 
           cd rr
-          [ "${{ inputs.prerelease }}" = "true" ] && RELEASE="pre" || RELEASE=""
-          sed -i "s/^RR_RELEASE=.*$/RR_RELEASE=\"${RELEASE}\"/" files/initrd/opt/rr/include/consts.sh
-          if [ -n "${VERSION}" ]; then
-            echo "${VERSION}" >VERSION
-            echo "${VERSION}" >files/mnt/p1/RR_VERSION
-            sed -i "s/^RR_VERSION=.*$/RR_VERSION=\"${VERSION}\"/" files/initrd/opt/rr/include/consts.sh
-          else
-            echo "${TAGDATE}" >VERSION
-            echo "${TAGDATE}" >files/mnt/p1/RR_VERSION
-            sed -i "s/^RR_VERSION=.*$/RR_VERSION=\"${TAGDATE}\"/" files/initrd/opt/rr/include/consts.sh
-          fi
-          if [ -n "${VERSION}" ]; then
+          [ "${{ inputs.prerelease }}" = "true" ] && release="pre" || release=""
+          if [ -n "${version}" ]; then
+            echo "${version}" >VERSION
+            echo "${version}" >files/mnt/p1/RR_VERSION
+            sed -i "s/^RR_RELEASE=.*$/RR_RELEASE=\"${release}\"/; s/^RR_VERSION=.*$/RR_VERSION=\"${version}\"/" files/initrd/opt/rr/include/consts.sh
+
             git checkout main
             git pull
             status=$(git status -s | awk '{printf " %s", $2}')
@@ -103,6 +100,10 @@ jobs:
               git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
               git push -f
             fi
+          else
+            echo "${tagdate}" >VERSION
+            echo "${tagdate}" >files/mnt/p1/RR_VERSION
+            sed -i "s/^RR_RELEASE=.*$/RR_RELEASE=\"${release}\"/; s/^RR_VERSION=.*$/RR_VERSION=\"${tagdate}\"/" files/initrd/opt/rr/include/consts.sh
           fi
           cd -
 
@@ -124,11 +125,12 @@ jobs:
           repackInitrd "rr/files/mnt/p3/initrd-rr" "rr/files/initrd"
 
           echo "docker build and push"
-          if [ -n "${{ env.VERSION }}" ]; then
+          version="${{ steps.version.outputs.version }}"
+          if [ -n "${version}" ]; then
             unpackInitrd "rr/files/mnt/p3/initrd-rr" "rr-misc/docker/rr/initrd"
             echo "${{ secrets.DOCKERHUB_PASSWORD }}" | sudo docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-            sudo docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/rr:${{ env.VERSION }} -t ${{ secrets.DOCKERHUB_USERNAME }}/rr:latest -f rr-misc/docker/rr/Dockerfile rr-misc/docker/rr/
-            sudo docker push ${{ secrets.DOCKERHUB_USERNAME }}/rr:${{ env.VERSION }}
+            sudo docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/rr:${version} -t ${{ secrets.DOCKERHUB_USERNAME }}/rr:latest -f rr-misc/docker/rr/Dockerfile rr-misc/docker/rr/
+            sudo docker push ${{ secrets.DOCKERHUB_USERNAME }}/rr:${version}
             sudo docker push ${{ secrets.DOCKERHUB_USERNAME }}/rr:latest
           fi
 
@@ -155,36 +157,36 @@ jobs:
       - name: Pack
         run: |
           cd rr
-          TAGDATE="${{ env.TAGDATE }}"
-          VERSION="${{ env.VERSION }}"
-          VERSION="${VERSION:-"${TAGDATE}"}"
+          version="${{ steps.version.outputs.version }}"
+          tagdate="${{ steps.version.outputs.tagdate }}"
+          version="${version:-"${tagdate}"}"
 
           sha256sum rr.img >sha256sum
-          zip -9 "rr-${VERSION}.img.zip" rr.img sha256sum
+          zip -9 "rr-${version}.img.zip" rr.img sha256sum
 
           sha256sum rr.ova >sha256sum
-          zip -9 "rr-${VERSION}.ova.zip" rr.ova sha256sum
-
+          zip -9 "rr-${version}.ova.zip" rr.ova sha256sum
+  
           sha256sum rr.vhd  >sha256sum
           sha256sum rr.vmc >>sha256sum
-          zip -9 "rr-${VERSION}.vhd.zip" rr.vhd rr.vmc sha256sum
+          zip -9 "rr-${version}.vhd.zip" rr.vhd rr.vmc sha256sum
 
           # update.zip
           sha256sum update-list.yml update-check.sh >sha256sum
-          zip -9j "update-${VERSION}.zip" update-list.yml update-check.sh
+          zip -9j "update-${version}.zip" update-list.yml update-check.sh
           while read F; do
             if [ -d "${F}" ]; then
               FTGZ="$(basename "${F}").tgz"
               tar -zcf "${FTGZ}" -C "${F}" .
               sha256sum "${FTGZ}" >>sha256sum
-              zip -9j "update-${VERSION}.zip" "${FTGZ}"
+              zip -9j "update-${version}.zip" "${FTGZ}"
               rm -f "${FTGZ}"
             else
               (cd $(dirname "${F}") && sha256sum $(basename "${F}")) >>sha256sum
-              zip -9j "update-${VERSION}.zip" "${F}"
+              zip -9j "update-${version}.zip" "${F}"
             fi
           done <<<$(yq '.replace | explode(.) | to_entries | map([.key])[] | .[]' update-list.yml)
-          zip -9j "update-${VERSION}.zip" sha256sum
+          zip -9j "update-${version}.zip" sha256sum
 
           # updateall.zip
           rm -f sha256sum
@@ -193,27 +195,27 @@ jobs:
           echo '  "files/mnt/p3/addons/": "/mnt/p3/addons/"' >>update-list.yml
           echo '  "files/mnt/p3/modules/": "/mnt/p3/modules/"' >>update-list.yml
 
-          zip -9j "updateall-${VERSION}.zip" update-list.yml update-check.sh
+          zip -9j "updateall-${version}.zip" update-list.yml update-check.sh
           while read F; do
             if [ -d "${F}" ]; then
               FTGZ="$(basename "${F}").tgz"
               tar -zcf "${FTGZ}" -C "${F}" .
               sha256sum "${FTGZ}" >>sha256sum
-              zip -9j "updateall-${VERSION}.zip" "${FTGZ}"
+              zip -9j "updateall-${version}.zip" "${FTGZ}"
               rm -f "${FTGZ}"
             else
               (cd $(dirname "${F}") && sha256sum $(basename "${F}")) >>sha256sum
-              zip -9j "updateall-${VERSION}.zip" "${F}"
+              zip -9j "updateall-${version}.zip" "${F}"
             fi
           done <<<$(yq '.replace | explode(.) | to_entries | map([.key])[] | .[]' update-list.yml)
-          zip -9j "updateall-${VERSION}.zip" sha256sum
+          zip -9j "updateall-${version}.zip" sha256sum
 
           # sha256sum
-          sha256sum "rr-${VERSION}.img.zip"     >sha256sum
-          sha256sum "rr-${VERSION}.ova.zip"    >>sha256sum
-          sha256sum "rr-${VERSION}.vhd.zip"    >>sha256sum
-          sha256sum "update-${VERSION}.zip"    >>sha256sum
-          sha256sum "updateall-${VERSION}.zip" >>sha256sum
+          sha256sum "rr-${version}.img.zip"     >sha256sum
+          sha256sum "rr-${version}.ova.zip"    >>sha256sum
+          sha256sum "rr-${version}.vhd.zip"    >>sha256sum
+          sha256sum "update-${version}.zip"    >>sha256sum
+          sha256sum "updateall-${version}.zip" >>sha256sum
 
       # Upload artifact
       - name: Upload to Artifacts
@@ -258,10 +260,10 @@ jobs:
 
       # Publish a release if is a tag
       - name: Release
-        if: success() && env.VERSION != ''
+        if: success() && steps.version.outputs.version != ''
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ env.VERSION }}
+          tag: ${{ steps.version.outputs.version }}
           prerelease: ${{ inputs.prerelease }}
           artifacts: |
             rr/rr-*.zip

@@ -62,47 +62,49 @@ jobs:
           df -h
 
       - name: Calculate version
+        id: version
         run: |
           # Calculate version
-          VERSION=""
+          version=""
           if [ -n "${{ inputs.version }}" ]; then
             if [ "$(echo ${{ inputs.version }} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then
-              VERSION="${{ inputs.version }}"
+              version="${{ inputs.version }}"
             else
               LATEST_TAG="$(curl -skLH "Authorization: token ${{ secrets.RRORG }}" "https://api.github.com/repos/RROrg/rr-buildroot/releases" | jq -r ".[0].tag_name" 2>/dev/null)"
               if [ -n "${LATEST_TAG}" ] && [ "$(echo ${LATEST_TAG} | cut -d '.' -f 1,2)" = "$(date +'%y.%-m')" ]; then  # format %y.%-m.$i
-                VERSION="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
+                version="$(echo ${LATEST_TAG} | awk -F '.' '{$3=$3+1}1' OFS='.')"
               else
-                VERSION="$(date +'%y.%-m').0"
+                version="$(date +'%y.%-m').0"
               fi
             fi
           fi
 
-          echo "VERSION: ${VERSION}"
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "version: ${version}"
+          echo "version=${version}" >> $GITHUB_OUTPUT
 
       - name: Build buildroot
+        id: buildroot
         run: |
           cd buildroot
           chmod +x ./build_rr.sh
           . ./build_rr.sh "${{ inputs.br2ver }}" "${{ inputs.kerver }}"
 
-          [ -n "${BUILDROOT_VERSION}" ] && echo "BUILDROOT_VERSION=${BUILDROOT_VERSION}" >> $GITHUB_ENV || exit 1
-          [ -n "${KERNEL_VERSION}" ] && echo "KERNEL_VERSION=${KERNEL_VERSION}" >> $GITHUB_ENV || exit 1
+          [ -n "${BUILDROOT_VERSION}" ] && echo "BUILDROOT_VERSION=${BUILDROOT_VERSION}" >> $GITHUB_OUTPUT || exit 1
+          [ -n "${KERNEL_VERSION}" ] && echo "KERNEL_VERSION=${KERNEL_VERSION}" >> $GITHUB_OUTPUT || exit 1
 
       - name: Zip modules
         run: |
           cp -f buildroot/.rr-buildroot/output/images/bzImage bzImage-rr || exit 1
           cp -f buildroot/.rr-buildroot/output/images/rootfs.cpio.zst initrd-rr || exit 1
 
-          VERSION="${{ env.VERSION }}"
-          VERSION="${VERSION:-"test"}"
+          version="${{ steps.version.outputs.version }}"
+          version="${version:-"test"}"
 
-          echo "${VERSION}" > "VERSION"
-          zip -9 ${{ github.workspace }}/buildroot-${VERSION}.zip -j bzImage-rr initrd-rr VERSION
+          echo "${version}" > "VERSION"
+          zip -9 ${{ github.workspace }}/buildroot-${version}.zip -j bzImage-rr initrd-rr VERSION
 
       - name: Upload artifact
-        if: success() && env.VERSION == ''
+        if: success() && steps.version.outputs.version == ''
         uses: actions/upload-artifact@v7
         with:
           name: buildroot
@@ -111,15 +113,15 @@ jobs:
           retention-days: 5
 
       - name: Release
-        if: success() && env.VERSION != ''
+        if: success() && steps.version.outputs.version != ''
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ env.VERSION }}
+          tag: ${{ steps.version.outputs.version }}
           prerelease: ${{ inputs.prerelease }}
           artifacts: buildroot*.zip
           body: |
-            Buildroot version: ${{ env.BUILDROOT_VERSION }}
-            Kernel version: ${{ env.KERNEL_VERSION }}
+            Buildroot version: ${{ steps.buildroot.outputs.BUILDROOT_VERSION }}
+            Kernel version: ${{ steps.buildroot.outputs.KERNEL_VERSION }}
           owner: RROrg
           repo: rr-buildroot
           token: ${{ secrets.RRORG }}
